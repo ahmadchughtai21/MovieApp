@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock title %}
+
+{% block content %}
+<div class="flex flex-col items-center bg-gray-900 text-white min-h-screen py-10 px-4">
+    <!-- Navigation -->
+    <div class="text-2xl font-bold mb-6">
+        <button id="movies-nav" class="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 focus:outline-none {% if active_nav == 'movies' %}text-white bg-blue-500{% endif %}">Movies</button>
+        <button id="shows-nav" class="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 focus:outline-none {% if active_nav == 'shows' %}text-white bg-blue-500{% endif %}">Shows</button>
+    </div>
+
+    <!-- Main Content -->
+    <div id="main-content" class="w-full max-w-6xl">
+        <!-- Movies Section -->
+        <section id="movies" class="hidden">
+            <h2 class="text-4xl font-bold mb-4 border-b-2 border-gray-700 pb-2 flex justify-between items-center">
+                Movies
+                <form method="POST" action="{% url 'moviesearchresult' %}" class="flex">
+                    {% csrf_token %}
+                    <input type="text" name="search_query" placeholder="Search Movies" class="bg-gray-800 text-white text-lg font-semibold px-6 py-3 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    <button type="submit" class="bg-blue-600 text-white text-lg font-semibold px-6 py-3 rounded-r-md hover:bg-blue-700 transition-colors duration-200">Search</button>
+                </form>
+            </h2>
+
+            <div class="flex flex-wrap justify-center gap-4 mt-4">
+                {% for genre in movie_genres.genres %}
+                    <a href="{% url 'moviesgenre' %}?id={{genre.id}}&page=1" class="bg-gray-800 px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors duration-200 text-center">
+                        {{ genre.name }}
+                    </a>
+                {% endfor %}
+            </div>
+            
+            
+
+
+            <!-- Now Playing -->
+            <section class="mb-12 relative">
+                <h2 class="text-3xl font-bold m-6 border-b-2 border-gray-700 pb-6 text-center">Trending This Week</h2>
+                <div class="relative overflow-hidden">
+                    <button class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-2 rounded-full focus:outline-none z-10" onclick="scrollSection('now-playing', -300)">
+                        &#10094;
+                    </button>
+                    <div id="now-playing" class="flex space-x-6 overflow-x-scroll scrollbar-hide">
+                        {% for movie in m_trending_this_week.results %}
+                        <div class="flex-none w-56">
+                            <a href="{% url 'movieplayer' %}?id={{ movie.id }}">
+                                <div class="bg-gray-800 rounded-lg shadow-lg transform hover:scale-105 hover:bg-gray-700 transition duration-300">
+                                    <img src="https://image.tmdb.org/t/p/w500/{{ movie.poster_path }}" alt="{{ movie.title }}" class="w-full h-80 object-cover rounded-t-lg">
+                                    <div class="p-4">
+                                        <h3 class="text-lg font-semibold">{{ movie.title }}</h3>
+                                        <p class="text-gray-400">{{ movie.release_date }}</p>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <button class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-2 rounded-full focus:outline-none z-10" onclick="scrollSection('now-playing', 300)">
+                        &#10095;
+                    </button>
+                </div>
+            </section>
+            <!-- Popular, Upcoming, etc. (repeat similar structure) -->
+            <section class="mb-12 relative">
+                <h2 class="text-3xl font-bold mb-6 border-b-2 border-gray-700 pb-6 text-center">Popular</h2>
+                <div class="relative overflow-hidden">
+                    <button class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-2 rounded-full focus:outline-none z-10" onclick="scrollSection('popular-movies', -300)">
+                        &#10094;
+                    </button>
+                    <div id="popular-movies" class="flex space-x-6 overflow-x-scroll scrollbar-hide">
+                        {% for movie in popular.results %}
+                        <div class="flex-none w-56">
+                            <a href="{% url 'movieplayer' %}?id={{ movie.id }}">
+                                <div class="bg-gray-800 rounded-lg shadow-lg transform hover:scale-105 hover:bg-gray-700 transition duration-300">
+                                    <img src="https://image.tmdb.org/t/p/w500/{{ movie.poster_path }}" alt="{{ movie.title }}" class="w-full h-80 object-cover rounded-t-lg">
+                                    <div class="p-4">
+                                        <h3 class="text-lg font-semibold">{{ movie.title }}</h3>
+                                        <p class="text-gray-400">{{ movie.release_date }}</p>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <button class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-2 rounded-full focus:outline-none z-10" onclick="scrollSection('popular-movies', 300)">
+                        &#10095;
+                    </button>
+                </div>
+            </section>
+            <!-- Add similar sections for Popular, Upcoming, etc. -->
+            <section class="relative">
+                <h2 class="text-3xl font-bold mb-6 border-b-2 border-gray-700 pb-6 text-center">Upcoming & HD-CAM</h2>
+                <div class="relative overflow-hidden">
+                    <button class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-2 rounded-full focus:outline-none z-10" onclick="scrollSection('upcoming-movies', -300)">
+                        &#10094;
+                    </button>
+                    <div id="upcoming-movies" class="flex space-x-6 overflow-x-scroll scrollbar-hide">
+                        {% for movie in upcoming.results %}
+                        <div class="flex-none w-56">
+                            <a href="{% url 'movieplayer' %}?id={{ movie.id }}">
+                                <div class="bg-gray-800 rounded-lg shadow-lg transform hover:scale-105 hover:bg-gray-700 transition duration-300">
+                                    <img src="https://image.tmdb.org/t/p/w500/{{ movie.poster_path }}" alt="{{ movie.title }}" class="w-full h-80 object-cover rounded-t-lg">
+                                    <div class="p-4">
+                                        <h3 class="text-lg font-semibold">{{ movie.title }}</h3>
+                                        <p class="text-gray-400">{{ movie.release_date }}</p>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <button class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-2 rounded-full focus:outline-none z-10" onclick="scrollSection('upcoming-movies', 300)">
+                        &#10095;
+                    </button>
+                </div>
+            </section>
+        </section>
+
+        <!-- Shows Section -->
+        <section id="shows" class="hidden">
+            <h2 class="text-4xl font-bold mb-4 border-b-2 border-gray-700 pb-2 flex justify-between items-center">
+                Shows
+                <form method="POST" action="{% url 'showsearchresult' %}" class="flex">
+                    {% csrf_token %}
+                    <input type="text" name="search_query" placeholder="Search Shows" class="bg-gray-800 text-white text-lg font-semibold px-6 py-3 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    <button type="submit" class="bg-blue-600 text-white text-lg font-semibold px-6 py-3 rounded-r-md hover:bg-blue-700 transition-colors duration-200">Search</button>
+                </form>
+            </h2>
+
+
+            <div class="flex flex-wrap justify-center gap-4 mt-4">
+                {% for genre in show_genres.genres %}
+                    <a href="{% url 'showsgenre' %}?id={{genre.id}}&page=1" class="bg-gray-800 px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors duration-200 text-center">
+                        {{ genre.name }}
+                    </a>
+                {% endfor %}
+            </div>
+            <!-- Airing Today -->
+
+            <section class="relative">
+                <h2 class="text-3xl font-bold mb-6 border-b-2 border-gray-700 py-6 text-center">Top Rated</h2>
+                <div class="relative overflow-hidden">
+                    <button class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-3 rounded-full focus:outline-none z-20" onclick="scrollSection('top-rated-shows', -300)">
+                        &#10094;
+                    </button>
+                    <div id="top-rated-shows" class="flex space-x-6 overflow-x-scroll scrollbar-hide">
+                        {% for show in top_rated.results %}
+                        <div class="flex-none w-56">
+                            <a href="{% url 'showplayer' %}?id={{ show.id }}&s=1&e=1">
+                                <div class="bg-gray-800 rounded-lg shadow-lg transform hover:scale-105 hover:bg-gray-700 transition duration-300">
+                                    <img src="https://image.tmdb.org/t/p/w500/{{ show.poster_path }}" alt="{{ show.name }}" class="w-full h-80 object-cover rounded-t-lg">
+                                    <div class="p-4">
+                                        <h3 class="text-lg font-semibold">{{ show.name }}</h3>
+                                        <p class="text-gray-400">{{ show.first_air_date }}</p>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <button class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-3 rounded-full focus:outline-none z-20" onclick="scrollSection('top-rated-shows', 300)">
+                        &#10095;
+                    </button>
+                </div>
+            </section>
+
+            <section class="mb-12 relative">
+                <h2 class="text-3xl font-bold mb-6 border-b-2 border-gray-700 py-6 text-center">Trending This Week</h2>
+                <div class="relative overflow-hidden">
+                    <button class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-3 rounded-full focus:outline-none z-20" onclick="scrollSection('popular-shows', -300)">
+                        &#10094;
+                    </button>
+                    <div id="popular-shows" class="flex space-x-6 overflow-x-scroll scrollbar-hide">
+                        {% for show in s_trending_this_week.results %}
+                        <div class="flex-none w-56">
+                            <a href="{% url 'showplayer' %}?id={{ show.id }}&s=1&e=1">
+                                <div class="bg-gray-800 rounded-lg shadow-lg transform hover:scale-105 hover:bg-gray-700 transition duration-300">
+                                    <img src="https://image.tmdb.org/t/p/w500/{{ show.poster_path }}" alt="{{ show.name }}" class="w-full h-80 object-cover rounded-t-lg">
+                                    <div class="p-4">
+                                        <h3 class="text-lg font-semibold">{{ show.name }}</h3>
+                                        <p class="text-gray-400">{{ show.first_air_date }}</p>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <button class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-3 rounded-full focus:outline-none z-20" onclick="scrollSection('popular-shows', 300)">
+                        &#10095;
+                    </button>
+                </div>
+            </section>
+
+            <section class="mb-12 relative">
+                <h2 class="text-3xl font-bold mb-6 border-b-2 border-gray-700 py-6 text-center">Airing Today</h2>
+                <div class="relative overflow-hidden">
+                    <button class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-3 rounded-full focus:outline-none z-20" onclick="scrollSection('airing-today', -300)">
+                        &#10094;
+                    </button>
+                    <div id="airing-today" class="flex space-x-6 overflow-x-scroll scrollbar-hide">
+                        {% for show in airing_today.results %}
+                        <div class="flex-none w-56">
+                            <a href="{% url 'showplayer' %}?id={{ show.id }}&s=1&e=1">
+                                <div class="bg-gray-800 rounded-lg shadow-lg transform hover:scale-105 hover:bg-gray-700 transition duration-300">
+                                    <img src="https://image.tmdb.org/t/p/w500/{{ show.poster_path }}" alt="{{ show.name }}" class="w-full h-80 object-cover rounded-t-lg">
+                                    <div class="p-4">
+                                        <h3 class="text-lg font-semibold">{{ show.name }}</h3>
+                                        <p class="text-gray-400">{{ show.first_air_date }}</p>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <button class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-3 rounded-full focus:outline-none z-20" onclick="scrollSection('airing-today', 300)">
+                        &#10095;
+                    </button>
+                </div>
+            </section>
+        
+
+
+        </section>
+    </div>
+</div>
+
+<style>
+    .scrollbar-hide {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+    }
+    
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;  /* Chrome, Safari, and Opera */
+    }
+</style>
+
+<script>
+function scrollSection(sectionId, scrollAmount) {
+    const container = document.getElementById(sectionId);
+    container.scrollBy({
+        left: scrollAmount,
+        behavior: 'smooth'
+    });
+}
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Show the movies section by default
+        document.getElementById('movies').classList.remove('hidden');
+        document.getElementById('shows').classList.add('hidden');
+        
+        // Add event listeners to the navigation buttons
+        document.getElementById('movies-nav').addEventListener('click', function() {
+            document.getElementById('movies').classList.remove('hidden');
+            document.getElementById('shows').classList.add('hidden');
+        });
+    
+        document.getElementById('shows-nav').addEventListener('click', function() {
+            document.getElementById('shows').classList.remove('hidden');
+            document.getElementById('movies').classList.add('hidden');
+        });
+    });
+</script>
+
+{% endblock content %}

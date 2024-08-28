@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Movies{% endblock title %}
+
+{% block content %}
+<div class="flex justify-center bg-gray-900 py-4 px-8">
+    <form method="POST" action="{% url "moviesearchresult" %}" class="flex w-full max-w-2xl">
+        {% csrf_token %}
+        <input type="text" name="search_query" placeholder="Search" class="bg-gray-800 text-white text-lg font-semibold px-6 py-3 rounded-l-md flex-grow focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+        <button type="submit" class="bg-blue-600 text-white text-lg font-semibold px-6 py-3 rounded-r-md hover:bg-blue-700 transition-colors duration-200">Search</button>
+    </form>
+</div>
+
+<div class="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white py-10 px-8">
+    <!-- Now Playing Movies -->
+    <section class="mb-12 relative">
+        <h2 class="text-3xl font-bold mb-6 border-b-2 border-gray-700 pb-2">Now Playing</h2>
+        <div class="relative overflow-hidden">
+            <button class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-2 rounded-full focus:outline-none z-10" onclick="scrollContainer('now-playing', -300)">
+                &#10094;
+            </button>
+            <div id="now-playing" class="flex space-x-6 overflow-x-scroll scrollbar-hide">
+                {% for movie in now_playing.results %}
+                <div class="flex-none w-56">
+                    <a href="{% url 'movieplayer' %}?id={{ movie.id }}">
+                        <div class="bg-gray-800 rounded-lg shadow-lg transform hover:scale-105 hover:bg-gray-700 transition duration-300">
+                            <img src="https://image.tmdb.org/t/p/w500/{{ movie.poster_path }}" alt="{{ movie.title }}" class="w-full h-80 object-cover rounded-t-lg">
+                            <div class="p-4">
+                                <h3 class="text-lg font-semibold">{{ movie.title }}</h3>
+                                <p class="text-gray-400">{{ movie.release_date }}</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            <button class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-2 rounded-full focus:outline-none z-10" onclick="scrollContainer('now-playing', 300)">
+                &#10095;
+            </button>
+        </div>
+    </section>
+
+    <!-- Popular Movies -->
+    <section class="mb-12 relative">
+        <h2 class="text-3xl font-bold mb-6 border-b-2 border-gray-700 pb-2">Popular</h2>
+        <div class="relative overflow-hidden">
+            <button class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-2 rounded-full focus:outline-none z-10" onclick="scrollContainer('popular-movies', -300)">
+                &#10094;
+            </button>
+            <div id="popular-movies" class="flex space-x-6 overflow-x-scroll scrollbar-hide">
+                {% for movie in popular.results %}
+                <div class="flex-none w-56">
+                    <a href="{% url 'movieplayer' %}?id={{ movie.id }}">
+                        <div class="bg-gray-800 rounded-lg shadow-lg transform hover:scale-105 hover:bg-gray-700 transition duration-300">
+                            <img src="https://image.tmdb.org/t/p/w500/{{ movie.poster_path }}" alt="{{ movie.title }}" class="w-full h-80 object-cover rounded-t-lg">
+                            <div class="p-4">
+                                <h3 class="text-lg font-semibold">{{ movie.title }}</h3>
+                                <p class="text-gray-400">{{ movie.release_date }}</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            <button class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-2 rounded-full focus:outline-none z-10" onclick="scrollContainer('popular-movies', 300)">
+                &#10095;
+            </button>
+        </div>
+    </section>
+
+    <!-- Upcoming Movies -->
+    <section class="relative">
+        <h2 class="text-3xl font-bold mb-6 border-b-2 border-gray-700 pb-2">Upcoming</h2>
+        <div class="relative overflow-hidden">
+            <button class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-2 rounded-full focus:outline-none z-10" onclick="scrollContainer('upcoming-movies', -300)">
+                &#10094;
+            </button>
+            <div id="upcoming-movies" class="flex space-x-6 overflow-x-scroll scrollbar-hide">
+                {% for movie in upcoming.results %}
+                <div class="flex-none w-56">
+                    <a href="{% url 'movieplayer' %}?id={{ movie.id }}">
+                        <div class="bg-gray-800 rounded-lg shadow-lg transform hover:scale-105 hover:bg-gray-700 transition duration-300">
+                            <img src="https://image.tmdb.org/t/p/w500/{{ movie.poster_path }}" alt="{{ movie.title }}" class="w-full h-80 object-cover rounded-t-lg">
+                            <div class="p-4">
+                                <h3 class="text-lg font-semibold">{{ movie.title }}</h3>
+                                <p class="text-gray-400">{{ movie.release_date }}</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            <button class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-2 rounded-full focus:outline-none z-10" onclick="scrollContainer('upcoming-movies', 300)">
+                &#10095;
+            </button>
+        </div>
+    </section>
+</div>
+
+<style>
+.scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari, and Opera */
+}
+</style>
+
+<script>
+function scrollContainer(sectionId, scrollAmount) {
+    const container = document.getElementById(sectionId);
+    container.scrollBy({
+        left: scrollAmount,
+        behavior: 'smooth'
+    });
+}
+</script>
+
+{% endblock content %}

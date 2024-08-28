@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Shows{% endblock title %}
+
+{% block content %}
+<div class="flex justify-center bg-gray-900 py-4 px-8">
+    <form method="POST" action="{% url "showsearchresult" %}" class="flex w-full max-w-2xl">
+        {% csrf_token %}
+        <input type="text" name="search_query" placeholder="Search" class="bg-gray-800 text-white text-lg font-semibold px-6 py-3 rounded-l-md flex-grow focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+        <button type="submit" class="bg-blue-600 text-white text-lg font-semibold px-6 py-3 rounded-r-md hover:bg-blue-700 transition-colors duration-200">Search</button>
+    </form>
+</div>
+
+<div class="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white py-10 px-8">
+    <!-- Airing Today -->
+    <section class="mb-12 relative">
+        <h2 class="text-3xl font-bold mb-6 border-b-2 border-gray-700 pb-2">Airing Today</h2>
+        <div class="relative overflow-hidden">
+            <button class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-3 rounded-full focus:outline-none z-20" onclick="scrollLeftSection('airing-today')">
+                &#10094;
+            </button>
+            <div id="airing-today" class="flex space-x-6 overflow-x-scroll scrollbar-hide">
+                {% for show in airing_today.results %}
+                <div class="flex-none w-56">
+                    <a href="{% url 'showplayer' %}?id={{ show.id }}&s=1&e=1">
+                        <div class="bg-gray-800 rounded-lg shadow-lg transform hover:scale-105 hover:bg-gray-700 transition duration-300">
+                            <img src="https://image.tmdb.org/t/p/w500/{{ show.poster_path }}" alt="{{ show.name }}" class="w-full h-80 object-cover rounded-t-lg">
+                            <div class="p-4">
+                                <h3 class="text-lg font-semibold">{{ show.name }}</h3>
+                                <p class="text-gray-400">{{ show.first_air_date }}</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            <button class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-3 rounded-full focus:outline-none z-20" onclick="scrollRightSection('airing-today')">
+                &#10095;
+            </button>
+        </div>
+    </section>
+
+    <!-- On The Air -->
+    <section class="mb-12 relative">
+        <h2 class="text-3xl font-bold mb-6 border-b-2 border-gray-700 pb-2">On The Air</h2>
+        <div class="relative overflow-hidden">
+            <button class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-3 rounded-full focus:outline-none z-20" onclick="scrollLeftSection('on-the-air')">
+                &#10094;
+            </button>
+            <div id="on-the-air" class="flex space-x-6 overflow-x-scroll scrollbar-hide">
+                {% for show in on_the_air.results %}
+                <div class="flex-none w-56">
+                    <a href="{% url 'showplayer' %}?id={{ show.id }}&s=1&e=1">
+                        <div class="bg-gray-800 rounded-lg shadow-lg transform hover:scale-105 hover:bg-gray-700 transition duration-300">
+                            <img src="https://image.tmdb.org/t/p/w500/{{ show.poster_path }}" alt="{{ show.name }}" class="w-full h-80 object-cover rounded-t-lg">
+                            <div class="p-4">
+                                <h3 class="text-lg font-semibold">{{ show.name }}</h3>
+                                <p class="text-gray-400">{{ show.first_air_date }}</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            <button class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-3 rounded-full focus:outline-none z-20" onclick="scrollRightSection('on-the-air')">
+                &#10095;
+            </button>
+        </div>
+    </section>
+
+    <!-- Popular Shows -->
+    <section class="mb-12 relative">
+        <h2 class="text-3xl font-bold mb-6 border-b-2 border-gray-700 pb-2">Popular</h2>
+        <div class="relative overflow-hidden">
+            <button class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-3 rounded-full focus:outline-none z-20" onclick="scrollLeftSection('popular-shows')">
+                &#10094;
+            </button>
+            <div id="popular-shows" class="flex space-x-6 overflow-x-scroll scrollbar-hide">
+                {% for show in popular.results %}
+                <div class="flex-none w-56">
+                    <a href="{% url 'showplayer' %}?id={{ show.id }}&s=1&e=1">
+                        <div class="bg-gray-800 rounded-lg shadow-lg transform hover:scale-105 hover:bg-gray-700 transition duration-300">
+                            <img src="https://image.tmdb.org/t/p/w500/{{ show.poster_path }}" alt="{{ show.name }}" class="w-full h-80 object-cover rounded-t-lg">
+                            <div class="p-4">
+                                <h3 class="text-lg font-semibold">{{ show.name }}</h3>
+                                <p class="text-gray-400">{{ show.first_air_date }}</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            <button class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-3 rounded-full focus:outline-none z-20" onclick="scrollRightSection('popular-shows')">
+                &#10095;
+            </button>
+        </div>
+    </section>
+
+    <!-- Top Rated Shows -->
+    <section class="relative">
+        <h2 class="text-3xl font-bold mb-6 border-b-2 border-gray-700 pb-2">Top Rated</h2>
+        <div class="relative overflow-hidden">
+            <button class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-3 rounded-full focus:outline-none z-20" onclick="scrollLeftSection('top-rated-shows')">
+                &#10094;
+            </button>
+            <div id="top-rated-shows" class="flex space-x-6 overflow-x-scroll scrollbar-hide">
+                {% for show in top_rated.results %}
+                <div class="flex-none w-56">
+                    <a href="{% url 'showplayer' %}?id={{ show.id }}&s=1&e=1">
+                        <div class="bg-gray-800 rounded-lg shadow-lg transform hover:scale-105 hover:bg-gray-700 transition duration-300">
+                            <img src="https://image.tmdb.org/t/p/w500/{{ show.poster_path }}" alt="{{ show.name }}" class="w-full h-80 object-cover rounded-t-lg">
+                            <div class="p-4">
+                                <h3 class="text-lg font-semibold">{{ show.name }}</h3>
+                                <p class="text-gray-400">{{ show.first_air_date }}</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            <button class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-3 rounded-full focus:outline-none z-20" onclick="scrollRightSection('top-rated-shows')">
+                &#10095;
+            </button>
+        </div>
+    </section>
+</div>
+
+<style>
+.scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari, and Opera */
+}
+</style>
+
+<script>
+function scrollLeftSection(sectionId) {
+    const container = document.getElementById(sectionId);
+    container.scrollBy({
+        left: -300,
+        behavior: 'smooth'
+    });
+}
+
+function scrollRightSection(sectionId) {
+    const container = document.getElementById(sectionId);
+    container.scrollBy({
+        left: 300,
+        behavior: 'smooth'
+    });
+}
+</script>
+
+{% endblock content %}

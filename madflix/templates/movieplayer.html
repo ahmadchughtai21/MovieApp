@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ mov_details.title }}{% endblock title %}
+
+{% block content %}
+<div class="relative min-h-screen bg-gray-900 text-white">
+    <!-- Fullscreen Background Poster with Dark Blur Gradient -->
+    <div class="absolute inset-0 z-0">
+        <img src="https://media.themoviedb.org/t/p/original/{{ mov_details.backdrop_path }}" alt="{{ mov_details.title }} Background" class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black opacity-75"></div>
+    </div>
+
+    <!-- Content Container -->
+    <div class="relative z-10 p-8 max-w-5xl mx-auto">
+        <!-- Movie Title -->
+        <h1 class="text-5xl font-bold mb-4">{{ mov_details.title }}</h1>
+        
+        <!-- Tagline -->
+        <p class="text-2xl italic text-gray-300 mb-6">{{ mov_details.tagline }}</p>
+
+        <!-- Video Player -->
+        <div class="mb-8">
+            <div class="rounded-lg shadow-lg overflow-hidden" style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);">
+            <iframe src="{{ vid_url }}" frameborder="0" class="w-full h-96" id="videoPlayer" allow="fullscreen"></iframe>
+            </div>
+        </div>
+
+        <!-- Movie Details and Poster -->
+        <div class="flex flex-col lg:flex-row lg:space-x-8 mb-8">
+            <!-- Movie Poster -->
+            <div class="flex-shrink-0 mb-4 lg:mb-0">
+                <img src="https://media.themoviedb.org/t/p/w500/{{ mov_details.poster_path }}" alt="{{ mov_details.title }} Poster" class="w-full h-auto rounded-lg shadow-lg">
+            </div>
+
+            <!-- Details -->
+            <div class="flex-grow">
+                <div class="rounded-lg p-6 mb-6 h-[47rem]" style="background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px);">
+                    <!-- Release Date and Runtime -->
+                    <p class="text-lg mb-2">Released: <span class="text-gray-300">{{ mov_details.release_date }}</span></p>
+                    <p class="text-lg mb-2">Runtime: <span class="text-gray-300">{{ mov_details.runtime }} minutes</span></p>
+
+                    <!-- Overview -->
+                    <h2 class="text-2xl font-semibold mb-4">Overview</h2>
+                    <p class="text-white">{{ mov_details.overview }}</p>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- Genres -->
+        <div class="rounded-lg p-6 mb-6" style="background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px);">
+            <h2 class="text-2xl font-semibold mb-4">Genres</h2>
+            <ul class="list-disc list-inside text-gray-300">
+                {% for genre in mov_details.genres %}
+                    <li>{{ genre.name }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Production Companies -->
+        <div class="rounded-lg p-6 mb-6" style="background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px);">
+            <h2 class="text-2xl font-semibold mb-4">Production Companies</h2>
+            <ul class="list-disc list-inside text-gray-300">
+                {% for company in mov_details.production_companies %}
+                    <li>{{ company.name }} ({{ company.origin_country }})</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Additional Information -->
+        <div class="rounded-lg p-6 mb-6" style="background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px);">
+            <h2 class="text-2xl font-semibold mb-4">Additional Information</h2>
+            <p class="text-gray-300">Budget: ${{ mov_details.budget | floatformat:0 }}</p>
+            <p class="text-gray-300">Revenue: ${{ mov_details.revenue | floatformat:0 }}</p>
+            <p class="text-gray-300">Popularity: {{ mov_details.popularity }}</p>
+            <p class="text-gray-300">Vote Average: {{ mov_details.vote_average }} ({{ mov_details.vote_count }} votes)</p>
+            <p class="text-gray-300">Status: {{ mov_details.status }}</p>
+            <p class="text-gray-300">Homepage: <a href="{{ mov_details.homepage }}" class="text-blue-400 underline">{{ mov_details.homepage }}</a></p>
+            <p class="text-gray-300">IMDb: <a href="https://www.imdb.com/title/{{ mov_details.imdb_id }}" class="text-blue-400 underline">{{ mov_details.imdb_id }}</a></p>
+        </div>
+                        <!-- You May Also Like -->
+                        <div class="rounded-lg p-6 mb-6" style="background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px);">
+                            <h2 class="text-2xl font-semibold mb-4">You May Also Like</h2>
+                            <div class="grid grid-cols-2 gap-4">
+                                {% for movie in similar_movies.results %}
+                                
+                                    <a href="{% url 'movieplayer' %}?id={{ movie.id }}" class="flex items-center space-x-4">
+                                        {% if movie.poster_path == null %}
+                                        <img
+                                            src="{% static 'img/null.png' %}"
+                                            alt="{{ show.name }} Poster"
+                                            class="w-24 h-auto rounded-lg shadow-lg"
+                                        />
+                                    {% else %}
+                                        <img src="https://media.themoviedb.org/t/p/w500/{{ movie.poster_path }}" alt="{{ movie.title }} Poster" class="w-24 h-auto rounded-lg shadow-lg">
+                                        {% endif %}
+                                        <div>
+                                            <h3 class="text-xl font-semibold">{{ movie.title }}</h3>
+                                            <p class="text-gray-300">{{ movie.release_date }}</p>
+                                            <p class="text-gray-300">{{ movie.vote_average }} ({{movie.vote_count}} votes)</p>
+                                        </div>
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+    </div>
+</div>
+
+
+{% endblock content %}

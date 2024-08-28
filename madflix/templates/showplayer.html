@@ -1,0 +1,232 @@
+{% extends "base.html" %} {% load static %} {% block title %}{{ show_details.name }}{% endblock title %} {% block content %}
+<div class="relative min-h-screen bg-gray-900 text-white">
+  <!-- Fullscreen Background Poster with Dark Blur Gradient -->
+  <div class="absolute inset-0 z-0">
+    <img
+      src="https://media.themoviedb.org/t/p/original/{{ show_details.backdrop_path }}"
+      alt="{{ show_details.title }} Background"
+      class="w-full h-full object-cover"
+    />
+    <div
+      class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black opacity-75"
+    ></div>
+  </div>
+
+  <!-- Content Container -->
+  <div class="relative z-10 p-8 max-w-5xl mx-auto">
+    <!-- show Title -->
+    <h1 class="text-5xl font-bold mb-4">{{ show_details.name }}</h1>
+
+    <!-- Episode Info -->
+    <p class="text-2xl italic text-gray-300 mb-6">
+      Season {{ ep_details.season_number }}, Episode Number {{ ep_details.episode_number }} ( {% if ep_details.name %} {{ ep_details.name }}) {% else %} The episode doesn't exist ) {% endif %}
+    </p>
+
+    <!-- Video Player -->
+    <div class="mb-8">
+      <div
+        class="rounded-lg shadow-lg overflow-hidden"
+        style="
+          background: rgba(255, 255, 255, 0.1);
+          backdrop-filter: blur(10px);
+        "
+      >
+        <iframe
+          src="{{ vid_url }}"
+          frameborder="0"
+          class="w-full h-96"
+          id="videoPlayer"
+          allow="fullscreen"
+        ></iframe>
+      </div>
+
+      <div
+      class="m-3 mt-6 p-6 flex justify-center items-center rounded-lg"
+      style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);"
+    >
+      <button
+        onclick="location.href='{% url 'showplayer' %}?id={{ show_details.id }}&s={{ s }}&e={{ e|add:'-1' }}'"
+        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-2 {% if e == '1' %}hidden{% endif %}"
+      >
+        Previous Episode
+      </button>
+    
+      <form action="{% url 'showplayer'%}" method="get" class="flex items-center ml-4">
+        <input type="hidden" name="id" value="{{ show_details.id }}" />
+        
+        <label for="seasonDropdown" class="text-lg font-semibold text-gray-300 mr-2">
+          Select Season:
+        </label>
+        
+        <select
+          id="seasonDropdown"
+          name="s"
+          class="bg-gray-700 text-white border border-gray-600 rounded p-2 appearance-none"
+          style="background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px);"
+        >
+          {% for season in show_details.seasons %}
+            {% if season.air_date %}
+              <option value="{{ season.season_number }}">{{ season.name }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+    
+        <label for="episodeDropdown" class="ml-4 text-lg font-semibold text-gray-300 mr-2">
+          Enter Episode Number:
+        </label>
+    
+        <input
+          type="number"
+          id="episodeDropdown"
+          name="e"
+          class="bg-gray-700 text-white border border-gray-600 rounded p-2 w-16 appearance-none"
+          min="1"
+          style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);"
+        />
+    
+        <button
+          type="submit"
+          class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-2"
+        >
+          Go!
+        </button>
+      </form>
+    
+      <button
+        onclick="location.href='{% url 'showplayer' %}?id={{ show_details.id }}&s={{ s }}&e={{ e|add:'1' }}'"
+        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-4"
+      >
+        Next Episode
+      </button>
+    </div>
+    
+    </div>
+
+    <!-- Show Details and Poster -->
+    <div class="flex flex-col lg:flex-row lg:space-x-8 mb-8">
+      <!-- Show Poster -->
+      <div class="flex-shrink-0 mb-4 lg:mb-0">
+        <img
+          src="https://media.themoviedb.org/t/p/w500/{{ show_details.poster_path }}"
+          alt="{{ show_details.title }} Poster"
+          class="w-full h-auto rounded-lg shadow-lg"
+        />
+      </div>
+
+      <!-- Details -->
+      <div class="flex-grow">
+        <!-- Season and Episode Dropdowns -->
+        <div
+          class="rounded-lg p-6 mb-6 h-[47rem]"
+          style="
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+          "
+        >
+          <!-- Release Date and Runtime -->
+          <p class="text-lg mb-2">
+            Released:
+            <span class="text-gray-300">{{ ep_details.air_date }}</span>
+          </p>
+          <p class="text-lg mb-2">
+            Runtime:
+            <span class="text-gray-300">{{ ep_details.runtime }} minutes</span>
+          </p>
+
+          <!-- Episode Overview -->
+          <h2 class="text-2xl font-semibold mb-4">Episode Overview</h2>
+          <p class="text-white mb-6">{{ ep_details.overview }}</p>
+          <!-- Series Overview -->
+          <h2 class="text-2xl font-semibold mb-4">Series Overview</h2>
+          <p class="text-white mb-6">{{ show_details.overview }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Genres -->
+    <div
+      class="rounded-lg p-6 mb-6"
+      style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px)"
+    >
+      <h2 class="text-2xl font-semibold mb-4">Genres</h2>
+      <ul class="list-disc list-inside text-gray-300">
+        {% for genre in show_details.genres %}
+        <li>{{ genre.name }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <!-- Production Companies -->
+    <div
+      class="rounded-lg p-6 mb-6"
+      style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px)"
+    >
+      <h2 class="text-2xl font-semibold mb-4">Production Companies</h2>
+      <ul class="list-disc list-inside text-gray-300">
+        {% for company in show_details.production_companies %}
+        <li>{{ company.name }} ({{ company.origin_country }})</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <!-- Additional Information -->
+    <div
+      class="rounded-lg p-6 mb-6"
+      style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px)"
+    >
+      <h2 class="text-2xl font-semibold mb-4">Additional Information</h2>
+      <p class="text-gray-300">Popularity: {{ show_details.popularity }}</p>
+      <p class="text-gray-300">
+        Vote Average: {{ show_details.vote_average }} ({{ show_details.vote_count }} votes)
+      </p>
+      <p class="text-gray-300">Status: {{ show_details.status }}</p>
+      <p class="text-gray-300">
+        Homepage:
+        <a href="{{ show_details.homepage }}" class="text-blue-400 underline"
+          >{{ show_details.homepage }}</a
+        >
+      </p>
+    </div>
+
+    <!-- You May Also Like -->
+    <div
+      class="rounded-lg p-6 mb-6"
+      style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px)"
+    >
+      <h2 class="text-2xl font-semibold mb-4">You May Also Like</h2>
+      <div class="grid grid-cols-2 gap-4">
+        {% for show in similar_shows.results %}
+        <a
+          href="{% url 'showplayer' %}?id={{ show.id }}&s=1&e=1"
+          class="flex items-center space-x-4"
+        >
+        {% if show.poster_path == null %}
+            <img
+                src="{% static 'img/null.png' %}"
+                alt="{{ show.name }} Poster"
+                class="w-24 h-auto rounded-lg shadow-lg"
+            />
+            
+        {% else %}
+          <img
+            src="https://media.themoviedb.org/t/p/w500/{{ show.poster_path }}"
+            alt="{{ show.name }} Poster"
+            class="w-24 h-auto rounded-lg shadow-lg"
+          />
+          {% endif %}
+          <div>
+            <h3 class="text-xl font-semibold">{{ show.name }}</h3>
+            <p class="text-gray-300">{{ show.first_air_date }}</p>
+            <p class="text-gray-300">
+              {{ show.vote_average }} ({{show.vote_count}} votes)
+            </p>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+
+{% endblock content %}

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ genre }} Shows{% endblock title %}
+
+{% block content %}
+<div class="container mx-auto px-4">
+    <h1 class="text-3xl font-bold text-center text-white mb-8">{{ genre }} Shows</h1>
+    
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+        {% for show in shows.results %}
+        <div class="bg-gray-800 rounded-lg shadow-lg transform hover:scale-105 hover:bg-gray-700 transition duration-300">
+            <a href="{% url 'showplayer' %}?id={{ show.id }}&s=1&e=1">
+                <img src="https://image.tmdb.org/t/p/w500/{{ show.poster_path }}" alt="{{ show.name }}" class="w-full h-80 object-cover rounded-t-lg">
+                <div class="p-4">
+                    <h3 class="text-lg font-semibold text-white">{{ show.name }}</h3>
+                    <p class="text-gray-400 mt-2">{{ show.overview|truncatewords:20 }}</p>
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+
+    
+    <div class="flex justify-center items-center mt-8 mb-8">
+        <a href="{% url 'showsgenre' %}?id={{ id }}&page={{ page|add:-1 }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mx-2 {% if page == '1' %}hidden{% endif %} ">Previous Page</a>
+        <h2 class="text-lg font-semibold text-white mx-2">Page no: {{ page }}</h2>
+        <a href="{% url 'showsgenre' %}?id={{ id }}&page={{ page|add:1 }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mx-2">Next Page</a>
+    </div>
+{% endblock content %}
