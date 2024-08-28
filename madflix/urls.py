@@ -22,5 +22,5 @@ urlpatterns = [
     path("", include("madflixapp.urls")),
     
     
-    path("__reload__/", include("django_browser_reload.urls")),
+    # path("__reload__/", include("django_browser_reload.urls")),
 ]
