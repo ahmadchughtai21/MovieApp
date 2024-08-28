@@ -13,7 +13,7 @@ SECRET_KEY = 'django-insecure-b(zy33-#%#n%@wu2gk5!p&dmwng3#w4mv*z7gm7mx31dk%22le
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ["https://movieapp-production-3cdf.up.railway.app"]
 
 # Application definition
 INSTALLED_APPS = [
