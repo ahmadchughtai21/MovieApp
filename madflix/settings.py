@@ -109,3 +109,4 @@ CSRF_TRUSTED_ORIGINS = [
 
 # Internal IPs (for development)
 INTERNAL_IPS = ['127.0.0.1']
+
