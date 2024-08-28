@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    # 'django.contrib.staticfiles',
+    'django.contrib.staticfiles',
     'tailwind',
     'theme',
     'django_browser_reload',
@@ -139,3 +139,5 @@ STATICFILES_DIRS = [
 ]
 
 CSRF_TRUSTED_ORIGINS = ['*']
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
