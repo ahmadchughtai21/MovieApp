@@ -138,6 +138,8 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
 
-CSRF_TRUSTED_ORIGINS = ['*']
+CSRF_TRUSTED_ORIGINS = ['https://movieapp-production-3cdf.up.railway.app/',
+                        'https://www.movieapp-production-3cdf.up.railway.app/'
+                        ]
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
