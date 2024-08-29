@@ -1,75 +1,50 @@
-{% extends "base.html" %} {% load static %} {% block title %}Search Results{% endblock title %} {% block content %}
-<div
-  class="min-h-screen flex flex-col items-center justify-start py-10 px-4 bg-gradient-to-br from-gray-900 via-gray-800 to-black"
->
-  <div
-    class="w-full max-w-3xl bg-black bg-opacity-30 backdrop-filter backdrop-blur-lg rounded-lg shadow-lg p-6 mb-8"
-  >
-    <form
-      method="POST"
-      action="{% url 'moviesearchresult' %}"
-      class="flex w-full"
-    >
-      {% csrf_token %}
-      <input
-        type="text"
-        name="search_query"
-        placeholder="Search movies..."
-        class="flex-grow bg-gray-900 text-white text-lg font-semibold px-4 py-2 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        required
-      />
-      <button
-        type="submit"
-        class="bg-blue-600 text-white text-lg font-semibold px-6 py-2 rounded-r-md hover:bg-blue-700 transition duration-300"
-      >
-        Search
-      </button>
-    </form>
-  </div>
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Search Results{% endblock title %}
 
-  {% if data.total_results == 0 %}
-  <div
-    class="w-full max-w-md bg-black bg-opacity-30 backdrop-filter backdrop-blur-lg rounded-lg shadow-lg p-6 text-center"
-  >
-    <p class="text-gray-300 text-lg font-semibold">No movies found.</p>
-    <a href="{% url 'home' %}">
-      <button
-        class="mt-4 w-full bg-blue-600 text-white text-lg font-semibold py-2 rounded-md hover:bg-blue-700 transition duration-300"
-      >
-        Back to Home
-      </button>
-    </a>
-  </div>
-  {% else %}
-  <div class="w-full max-w-3xl space-y-6">
-    {% for movie in data.results %}
-    <a href="{% url 'movieplayer' %}?id={{ movie.id }}" class="block">
-      <div
-        class="bg-black bg-opacity-10 backdrop-filter backdrop-blur-lg p-4 shadow-xl flex rounded-lg hover:bg-opacity-25 transition duration-300"
-      >
-        {% if movie.poster_path == null %}
+{% block content %}
+<div class="min-h-screen flex flex-col items-center justify-start py-10 px-4 bg-gradient-to-br from-gray-900 via-gray-800 to-black">
 
-        <img
-          src="{% static 'img/null.png' %}"
-          alt="{{ movie.title }} Poster"
-          class="w-24 h-36 rounded-md mr-4"
-        />
-        {% else %}
-        <img
-          src="https://media.themoviedb.org/t/p/w94_and_h141_bestv2/{{ movie.poster_path }}"
-          alt="{{ movie.title }} Poster"
-          class="w-24 h-36 rounded-md mr-4"
-        />
-        {% endif %}
-        <div>
-          <h2 class="text-xl font-bold text-white">{{ movie.title }}</h2>
-          <p class="text-gray-400">{{ movie.release_date }}</p>
-          <p class="text-gray-300 line-clamp-3">{{ movie.overview }}</p>
-        </div>
-      </div>
-    </a>
-    {% endfor %}
-  </div>
-  {% endif %}
+    <div class="w-full max-w-3xl mb-8">
+        <form method="POST" action="{% url "moviesearchresult" %}" class="flex w-full">
+            {% csrf_token %}
+            <input type="text" name="search_query" placeholder="Search" 
+                   class="flex-grow bg-gray-900 text-white text-lg font-semibold px-6 py-3 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+            <button type="submit" 
+                    class="bg-blue-600 text-white text-lg font-semibold px-6 py-3 rounded-r-md hover:bg-blue-700 transition duration-300">
+                Search
+            </button>
+        </form>
+    </div>
+
+    {% if data.total_results == 0 %}
+    <div class="flex flex-col items-center bg-black bg-opacity-30 backdrop-filter backdrop-blur-lg rounded-lg shadow-lg p-6 text-center">
+        <p class="text-gray-300 text-lg font-semibold mb-4">No movies found.</p>
+        <a href="{% url "home" %}">
+            <button class="bg-blue-600 text-white text-lg font-semibold px-6 py-3 rounded-md hover:bg-blue-700 transition duration-300">
+                Back to Home
+            </button>
+        </a>
+    </div>
+    {% else %}
+    <div class="w-full max-w-3xl space-y-6">
+        {% for movie in data.results %}
+        <a href="{% url 'movieplayer' %}?id={{ movie.id }}" class="block">
+            <div class="bg-black bg-opacity-10 backdrop-filter backdrop-blur-lg p-4 shadow-xl flex rounded-lg hover:bg-opacity-25 transition duration-300">
+                {% if movie.poster_path == null %}
+                <img src="{% static "img/null.png" %}" alt="{{ movie.title }} Poster" class="w-auto h-36 mr-4 rounded">
+                {% else %}
+                <img src="https://media.themoviedb.org/t/p/w94_and_h141_bestv2/{{ movie.poster_path }}" alt="{{ movie.title }} Poster" class="w-24 h-36 mr-4 rounded-md">
+                {% endif %}
+                <div>
+                    <h2 class="text-xl font-bold text-white">{{ movie.title }}</h2>
+                    <p class="text-gray-400">{{ movie.release_date }}</p>
+                    <p class="text-gray-300 line-clamp-3">{{ movie.overview }}</p>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
 </div>
 {% endblock content %}

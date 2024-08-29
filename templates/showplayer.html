@@ -1,4 +1,7 @@
-{% extends "base.html" %} {% load static %} {% block title %}{{ show_details.name }}{% endblock title %} {% block content %}
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ show_details.name }}{% endblock title %}
+{% block content %}
 <div class="relative min-h-screen bg-gray-900 text-white">
   <!-- Fullscreen Background Poster with Dark Blur Gradient -->
   <div class="absolute inset-0 z-0">
@@ -13,13 +16,16 @@
   </div>
 
   <!-- Content Container -->
-  <div class="relative z-10 p-8 max-w-5xl mx-auto">
-    <!-- show Title -->
-    <h1 class="text-5xl font-bold mb-4">{{ show_details.name }}</h1>
+  <div class="relative z-10 p-4 sm:p-8 max-w-5xl mx-auto">
+    <!-- Show Title -->
+    <h1 class="text-3xl sm:text-5xl font-bold mb-4">{{ show_details.name }}</h1>
 
     <!-- Episode Info -->
-    <p class="text-2xl italic text-gray-300 mb-6">
-      Season {{ ep_details.season_number }}, Episode Number {{ ep_details.episode_number }} ( {% if ep_details.name %} {{ ep_details.name }}) {% else %} The episode doesn't exist ) {% endif %}
+    <p class="text-xl sm:text-2xl italic text-gray-300 mb-6">
+      Season {{ ep_details.season_number }}, Episode Number
+      {{ ep_details.episode_number }}
+      {% if ep_details.name %} {{ ep_details.name }} {% else %} (The episode
+      doesn't exist) {% endif %}
     </p>
 
     <!-- Video Player -->
@@ -34,72 +40,71 @@
         <iframe
           src="{{ vid_url }}"
           frameborder="0"
-          class="w-full h-96"
+          class="w-full h-64 sm:h-96"
           id="videoPlayer"
           allow="fullscreen"
         ></iframe>
       </div>
 
       <div
-      class="m-3 mt-6 p-6 flex justify-center items-center rounded-lg"
-      style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);"
-    >
-      <button
-        onclick="location.href='{% url 'showplayer' %}?id={{ show_details.id }}&s={{ s }}&e={{ e|add:'-1' }}'"
-        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-2 {% if e == '1' %}hidden{% endif %}"
+        class="m-3 mt-6 p-4 sm:p-6 flex flex-col sm:flex-row justify-center items-center rounded-lg space-y-4 sm:space-y-0"
+        style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);"
       >
-        Previous Episode
-      </button>
-    
-      <form action="{% url 'showplayer'%}" method="get" class="flex items-center ml-4">
-        <input type="hidden" name="id" value="{{ show_details.id }}" />
-        
-        <label for="seasonDropdown" class="text-lg font-semibold text-gray-300 mr-2">
-          Select Season:
-        </label>
-        
-        <select
-          id="seasonDropdown"
-          name="s"
-          class="bg-gray-700 text-white border border-gray-600 rounded p-2 appearance-none"
-          style="background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px);"
-        >
-          {% for season in show_details.seasons %}
-            {% if season.air_date %}
-              <option value="{{ season.season_number }}">{{ season.name }}</option>
-            {% endif %}
-          {% endfor %}
-        </select>
-    
-        <label for="episodeDropdown" class="ml-4 text-lg font-semibold text-gray-300 mr-2">
-          Enter Episode Number:
-        </label>
-    
-        <input
-          type="number"
-          id="episodeDropdown"
-          name="e"
-          class="bg-gray-700 text-white border border-gray-600 rounded p-2 w-16 appearance-none"
-          min="1"
-          style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);"
-        />
-    
         <button
-          type="submit"
-          class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-2"
+          onclick="location.href='{% url 'showplayer' %}?id={{ show_details.id }}&s={{ s }}&e={{ e|add:'-1' }}'"
+          class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full sm:w-auto {% if e == '1' %}hidden{% endif %}"
         >
-          Go!
+          Previous Episode
         </button>
-      </form>
-    
-      <button
-        onclick="location.href='{% url 'showplayer' %}?id={{ show_details.id }}&s={{ s }}&e={{ e|add:'1' }}'"
-        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-4"
-      >
-        Next Episode
-      </button>
-    </div>
-    
+
+        <form action="{% url 'showplayer' %}" method="get" class="flex items-center w-full sm:w-auto">
+          <input type="hidden" name="id" value="{{ show_details.id }}" />
+
+          <label for="seasonDropdown" class="text-lg font-semibold text-gray-300 mr-2">
+            Select Season:
+          </label>
+
+          <select
+            id="seasonDropdown"
+            name="s"
+            class="bg-gray-700 text-white border border-gray-600 rounded p-2 appearance-none w-full sm:w-auto"
+            style="background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px);"
+          >
+            {% for season in show_details.seasons %}
+            {% if season.air_date %}
+            <option value="{{ season.season_number }}">{{ season.name }}</option>
+            {% endif %}
+            {% endfor %}
+          </select>
+
+          <label for="episodeDropdown" class="ml-4 text-lg font-semibold text-gray-300 mr-2">
+            Enter Episode Number:
+          </label>
+
+          <input
+            type="number"
+            id="episodeDropdown"
+            name="e"
+            class="bg-gray-700 text-white border border-gray-600 rounded p-2 w-16 appearance-none"
+            min="1"
+            style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);"
+          />
+
+          <button
+            type="submit"
+            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-2"
+          >
+            Go!
+          </button>
+        </form>
+
+        <button
+          onclick="location.href='{% url 'showplayer' %}?id={{ show_details.id }}&s={{ s }}&e={{ e|add:'1' }}'"
+          class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full sm:w-auto sm:ml-4"
+        >
+          Next Episode
+        </button>
+      </div>
     </div>
 
     <!-- Show Details and Poster -->
@@ -115,9 +120,8 @@
 
       <!-- Details -->
       <div class="flex-grow">
-        <!-- Season and Episode Dropdowns -->
         <div
-          class="rounded-lg p-6 mb-6 h-[47rem]"
+          class="rounded-lg p-4 sm:p-6 mb-6"
           style="
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
@@ -145,7 +149,7 @@
 
     <!-- Genres -->
     <div
-      class="rounded-lg p-6 mb-6"
+      class="rounded-lg p-4 sm:p-6 mb-6"
       style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px)"
     >
       <h2 class="text-2xl font-semibold mb-4">Genres</h2>
@@ -158,7 +162,7 @@
 
     <!-- Production Companies -->
     <div
-      class="rounded-lg p-6 mb-6"
+      class="rounded-lg p-4 sm:p-6 mb-6"
       style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px)"
     >
       <h2 class="text-2xl font-semibold mb-4">Production Companies</h2>
@@ -171,7 +175,7 @@
 
     <!-- Additional Information -->
     <div
-      class="rounded-lg p-6 mb-6"
+      class="rounded-lg p-4 sm:p-6 mb-6"
       style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px)"
     >
       <h2 class="text-2xl font-semibold mb-4">Additional Information</h2>
@@ -190,36 +194,33 @@
 
     <!-- You May Also Like -->
     <div
-      class="rounded-lg p-6 mb-6"
+      class="rounded-lg p-4 sm:p-6 mb-6"
       style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px)"
     >
       <h2 class="text-2xl font-semibold mb-4">You May Also Like</h2>
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {% for show in similar_shows.results %}
         <a
           href="{% url 'showplayer' %}?id={{ show.id }}&s=1&e=1"
           class="flex items-center space-x-4"
         >
-        {% if show.poster_path == null %}
-            <img
-                src="{% static 'img/null.png' %}"
-                alt="{{ show.name }} Poster"
-                class="w-24 h-auto rounded-lg shadow-lg"
-            />
-            
-        {% else %}
+          {% if show.poster_path == null %}
+          <img
+            src="{% static 'img/no-image-available.png' %}"
+            alt="{{ show.title }}"
+            class="w-20 h-28 object-cover rounded-lg"
+          />
+          {% else %}
           <img
             src="https://media.themoviedb.org/t/p/w500/{{ show.poster_path }}"
-            alt="{{ show.name }} Poster"
-            class="w-24 h-auto rounded-lg shadow-lg"
+            alt="{{ show.title }}"
+            class="w-20 h-28 object-cover rounded-lg"
           />
           {% endif %}
-          <div>
-            <h3 class="text-xl font-semibold">{{ show.name }}</h3>
-            <p class="text-gray-300">{{ show.first_air_date }}</p>
-            <p class="text-gray-300">
-              {{ show.vote_average }} ({{show.vote_count}} votes)
-            </p>
+
+          <div class="flex-grow">
+            <h3 class="text-lg font-semibold">{{ show.name }}</h3>
+            <p class="text-sm text-gray-400">Released: {{ show.first_air_date }}</p>
           </div>
         </a>
         {% endfor %}
@@ -227,6 +228,4 @@
     </div>
   </div>
 </div>
-
-
 {% endblock content %}

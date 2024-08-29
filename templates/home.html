@@ -14,14 +14,19 @@
     <div id="main-content" class="w-full max-w-6xl">
         <!-- Movies Section -->
         <section id="movies" class="hidden">
-            <h2 class="text-4xl font-bold mb-4 border-b-2 border-gray-700 pb-2 flex justify-between items-center">
-                Movies
-                <form method="POST" action="{% url 'moviesearchresult' %}" class="flex">
-                    {% csrf_token %}
-                    <input type="text" name="search_query" placeholder="Search Movies" class="bg-gray-800 text-white text-lg font-semibold px-6 py-3 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                    <button type="submit" class="bg-blue-600 text-white text-lg font-semibold px-6 py-3 rounded-r-md hover:bg-blue-700 transition-colors duration-200">Search</button>
-                </form>
-            </h2>
+            <div class="flex flex-col md:flex-row items-center justify-center mb-4">
+                <h2 class="text-4xl font-bold mb-4 border-b-2 border-gray-700 pb-2">
+                    Movies
+                </h2>
+            </div>
+            <form method="POST" action="{% url 'moviesearchresult' %}" class="flex w-full justify-center">
+                {% csrf_token %}
+                <div class="flex items-center">
+                    <input type="text" name="search_query" placeholder="Search Movies" class="bg-gray-800 text-white text-lg font-semibold px-6 py-2 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full md:w-96 lg:w-[32rem]" required>
+                    <button type="submit" class="bg-blue-600 text-white text-lg font-semibold px-6 py-2 rounded-r-md hover:bg-blue-700 transition-colors duration-200">Search</button>
+                </div>
+            </form>
+            
 
             <div class="flex flex-wrap justify-center gap-4 mt-4">
                 {% for genre in movie_genres.genres %}
@@ -31,9 +36,6 @@
                 {% endfor %}
             </div>
             
-            
-
-
             <!-- Now Playing -->
             <section class="mb-12 relative">
                 <h2 class="text-3xl font-bold m-6 border-b-2 border-gray-700 pb-6 text-center">Trending This Week</h2>
@@ -119,14 +121,21 @@
 
         <!-- Shows Section -->
         <section id="shows" class="hidden">
-            <h2 class="text-4xl font-bold mb-4 border-b-2 border-gray-700 pb-2 flex justify-between items-center">
-                Shows
-                <form method="POST" action="{% url 'showsearchresult' %}" class="flex">
-                    {% csrf_token %}
-                    <input type="text" name="search_query" placeholder="Search Shows" class="bg-gray-800 text-white text-lg font-semibold px-6 py-3 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                    <button type="submit" class="bg-blue-600 text-white text-lg font-semibold px-6 py-3 rounded-r-md hover:bg-blue-700 transition-colors duration-200">Search</button>
-                </form>
-            </h2>
+            <div class="flex flex-col md:flex-row items-center justify-center mb-4">
+                <h2 class="text-4xl font-bold mb-4 border-b-2 border-gray-700 pb-2">
+                    Shows
+                </h2>
+            </div>
+            <form method="POST" action="{% url 'showsearchresult' %}" class="flex w-full justify-center">
+                {% csrf_token %}
+                <div class="flex items-center">
+                    <input type="text" name="search_query" placeholder="Search Shows" class="bg-gray-800 text-white text-lg font-semibold px-6 py-2 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full md:w-96 lg:w-[32rem]" required>
+                    <button type="submit" class="bg-blue-600 text-white text-lg font-semibold px-6 py-2 rounded-r-md hover:bg-blue-700 transition-colors duration-200">Search</button>
+                </div>
+            </form>
+            
+            
+            
 
 
             <div class="flex flex-wrap justify-center gap-4 mt-4">
@@ -218,9 +227,6 @@
                     </button>
                 </div>
             </section>
-        
-
-
         </section>
     </div>
 </div>
@@ -245,22 +251,22 @@ function scrollSection(sectionId, scrollAmount) {
     });
 }
 
-    document.addEventListener('DOMContentLoaded', function() {
-        // Show the movies section by default
+document.addEventListener('DOMContentLoaded', function() {
+    // Show the movies section by default
+    document.getElementById('movies').classList.remove('hidden');
+    document.getElementById('shows').classList.add('hidden');
+    
+    // Add event listeners to the navigation buttons
+    document.getElementById('movies-nav').addEventListener('click', function() {
         document.getElementById('movies').classList.remove('hidden');
         document.getElementById('shows').classList.add('hidden');
-        
-        // Add event listeners to the navigation buttons
-        document.getElementById('movies-nav').addEventListener('click', function() {
-            document.getElementById('movies').classList.remove('hidden');
-            document.getElementById('shows').classList.add('hidden');
-        });
-    
-        document.getElementById('shows-nav').addEventListener('click', function() {
-            document.getElementById('shows').classList.remove('hidden');
-            document.getElementById('movies').classList.add('hidden');
-        });
     });
+
+    document.getElementById('shows-nav').addEventListener('click', function() {
+        document.getElementById('shows').classList.remove('hidden');
+        document.getElementById('movies').classList.add('hidden');
+    });
+});
 </script>
 
 {% endblock content %}

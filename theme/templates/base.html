@@ -10,7 +10,7 @@
     <link rel="icon" href="{% static 'img/logo.png' %}" type="image/x-icon">
     <link rel="stylesheet" href="{% static "css/dist/styles.css" %}">
     {% comment %} <script src="https://unpkg.com/htmx.org@2.0.2" integrity="sha384-Y7hw+L/jvKeWIRRkqWYfPcvVxHzVzn5REgzbawhxAuQGwX1XWe70vji+VSeHOThJ" crossorigin="anonymous"></script> {% endcomment %}
-          {% tailwind_css %}
+    {% tailwind_css %}
   </head>
 
   <body class="min-h-screen bg-gray-900">
@@ -29,5 +29,16 @@
     <div class="">{% block content %} 
 		
 		{% endblock content %}</div>
+
+    <footer>
+      <div class="bg-gray-900 text-white p-4">
+        <div class="flex justify-between">
+          <p>&copy; 2024 TenFlix</p>
+          
+          <a href="https://github.com/ahmadchughtai21"><p>Made by Ahmad Chughtai</p></a>
+        
+        </div>
+      </div>
+    </footer>
   </body>
 </html>
