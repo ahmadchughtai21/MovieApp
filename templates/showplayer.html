@@ -48,13 +48,20 @@
     ></iframe>
       </div>
 
+      <div class="mt-8 flex justify-center">
+        <a href="{{ vid_url }}" target="_blank" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+          Watch the video directly
+        </a>
+      </div>
+
+
       <div
-        class="m-3 mt-6 p-4 sm:p-6 flex flex-col sm:flex-row justify-center items-center rounded-lg space-y-4 sm:space-y-0"
+        class="m-3 mr-2 mt-6 p-4 sm:p-6 flex flex-col sm:flex-row justify-center items-center rounded-lg space-y-4 sm:space-y-0"
         style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);"
       >
         <button
           onclick="location.href='{% url 'showplayer' %}?id={{ show_details.id }}&s={{ s }}&e={{ e|add:'-1' }}'"
-          class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full sm:w-auto {% if e == '1' %}hidden{% endif %}"
+            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full sm:w-auto {% if e == '1' and s == "1" %}hidden{% endif %} mr-2"
         >
           Previous Episode
         </button>
