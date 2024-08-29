@@ -21,9 +21,23 @@
     </div>
 
     
-    <div class="flex justify-center items-center mt-8 mb-8">
-        <a href="{% url 'showsgenre' %}?id={{ id }}&page={{ page|add:-1 }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mx-2 {% if page == '1' %}hidden{% endif %} ">Previous Page</a>
-        <h2 class="text-lg font-semibold text-white mx-2">Page no: {{ page }}</h2>
-        <a href="{% url 'showsgenre' %}?id={{ id }}&page={{ page|add:1 }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mx-2">Next Page</a>
+    <div class="flex flex-col sm:flex-row justify-center items-center mt-8 mb-8 space-y-4 sm:space-y-0">
+        <!-- Previous Page Button -->
+        <a href="{% url 'showsgenre' %}?id={{ id }}&page={{ page|add:-1 }}" 
+           class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded {% if page == '1' %}hidden{% endif %} w-full sm:w-auto text-center">
+           Previous Page
+        </a>
+    
+        <!-- Page Number Display -->
+        <h2 class="text-lg font-semibold text-white mx-2 text-center">
+            Page no: {{ page }}
+        </h2>
+    
+        <!-- Next Page Button -->
+        <a href="{% url 'showsgenre' %}?id={{ id }}&page={{ page|add:1 }}" 
+           class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full sm:w-auto text-center">
+           Next Page
+        </a>
     </div>
+    
 {% endblock content %}

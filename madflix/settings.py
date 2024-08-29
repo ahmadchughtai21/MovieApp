@@ -114,6 +114,8 @@ TAILWIND_APP_NAME = 'theme'
 CSRF_TRUSTED_ORIGINS = [
     'https://movieapp-production-3cdf.up.railway.app',
     'https://www.movieapp-production-3cdf.up.railway.app',
+    'https://tenflix.online',
+    'https://www.tenflix.online',
 ]
 
 # Internal IPs (for development)

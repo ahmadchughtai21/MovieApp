@@ -1,6 +1,7 @@
 from django.shortcuts import render
-
+from django.urls import reverse
 import requests
+
 
 tmdb_api_key="094fb2bd51d27c7e737e0111053401dd"
 
@@ -273,8 +274,17 @@ def showsearchresult(request):
     
     return render(request, "showsearchresult.html")
 
+
+
+
+
+
+
+from django.shortcuts import render
+import requests
+
 def showplayer(request):
-    data={
+    data = {
         'vid_url': '',
         'show_details': '',
         'ep_details': '',
@@ -282,25 +292,39 @@ def showplayer(request):
         'e': '',
         's': '',
     }
+    
     if request.method == 'GET':
         id = request.GET.get('id')
-        s = request.GET.get('s')
-        data['s']=s
-        e = request.GET.get('e')
-        data['e']=e
-        data['vid_url'] = f"https://vidsrc.cc/v2/embed/tv/{id}/{s}/{e}" 
-        url=f"https://api.themoviedb.org/3/tv/{id}?api_key={tmdb_api_key}&language=en-US"
-        url2=f"https://api.themoviedb.org/3/tv/{id}/season/{s}/episode/{e}?api_key={tmdb_api_key}&language=en-US"
+        s = int(request.GET.get('s', '1'))
+        e = int(request.GET.get('e', '1'))
+
+        # Get show details
+        url = f"https://api.themoviedb.org/3/tv/{id}?api_key={tmdb_api_key}"
+        url2 = f"https://api.themoviedb.org/3/tv/{id}/season/{s}/episode/{e}?api_key={tmdb_api_key}&language=en-US"
         url_similar_shows = f"https://api.themoviedb.org/3/tv/{id}/similar?api_key={tmdb_api_key}"
         response = requests.get(url)
         response2 = requests.get(url2)
         response_similar_shows = requests.get(url_similar_shows)
-        data['show_details'] = response.json()
-        data['ep_details'] = response2.json()
-        data['similar_shows'] = response_similar_shows.json()
+        
+        show_details = response.json()
+        ep_details = response2.json()
+        similar_shows = response_similar_shows.json()
+        
+        data['show_details'] = show_details
+        data['ep_details'] = ep_details
+        data['similar_shows'] = similar_shows
+        data['s'] = s
+        data['e'] = e
+        data['vid_url'] = f"https://vidsrc.cc/v2/embed/tv/{id}/{s}/{e}"
+
         return render(request, "showplayer.html", data)
         
     return render(request, "showplayer.html", data)
+
+
+
+
+
 
 def moviesgenre(request):
     data ={

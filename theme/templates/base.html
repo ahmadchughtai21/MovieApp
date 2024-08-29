@@ -14,16 +14,19 @@
   </head>
 
   <body class="min-h-screen bg-gray-900">
-    <header class="bg-gray-900 text-white p-4">
-      <div class="flex justify-center">
-        <div class="pl-10"><a href="{% url 'home' %}" class="text-3xl font-bold">TenFlix</a></div>
-        <div class="flex pr-10">
-          <ul class="flex space-x-4">
-            {% comment %} <li><a href="{% url 'movies' %}" class="text-gray-300 hover:text-white">Movies</a></li> {% endcomment %}
-            {% comment %} <li><a href="{% url 'shows' %}" class="text-gray-300 hover:text-white">TV-Shows</a></li> {% endcomment %}
-            {% comment %} <li><a href="{% url 'movies' %}" class="text-gray-300 hover:text-white">Top-Rated</a></li> {% endcomment %}
-          </ul>
-        </div>
+    <header class="bg-gray-900 text-white p-4 flex justify-between items-center">
+      <div class="pl-10">
+      <a href="{% url 'home' %}" class="flex items-center">
+        <img src="{% static 'img/logo.png' %}" alt="TenFlix Logo" style="width: 50px; height: auto;" class="mr-2">
+        <span class="text-3xl font-bold text-white ml-2">TenFlix</span>
+      </a>
+      </div>
+      <div class="flex pr-10">
+      <ul class="flex space-x-4">
+        <li><a href="{% url 'movies' %}" class="text-gray-300 hover:text-white">Movies</a></li>
+        <li><a href="{% url 'shows' %}" class="text-gray-300 hover:text-white">TV-Shows</a></li>
+        {% comment %} <li><a href="{% url 'movies' %}" class="text-gray-300 hover:text-white">Top-Rated</a></li> {% endcomment %}
+      </ul>
       </div>
     </header>
     <div class="">{% block content %} 

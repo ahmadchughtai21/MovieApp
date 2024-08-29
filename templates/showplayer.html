@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load custom_filters %}
 {% block title %}{{ show_details.name }}{% endblock title %}
 {% block content %}
 <div class="relative min-h-screen bg-gray-900 text-white">
@@ -50,27 +51,28 @@
 
 
       <div
-        class="m-3 mr-2 mt-6 p-4 sm:p-6 flex flex-col sm:flex-row justify-center items-center rounded-lg space-y-4 sm:space-y-0"
-        style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);"
+      class="m-3 p-4 sm:p-6 flex flex-col sm:flex-row justify-center items-center rounded-lg space-y-4 sm:space-y-0"
+      style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);"
+    >
+      <!-- Previous Episode Button -->
+      <button
+        onclick="location.href='{% url 'showplayer' %}?id={{ show_details.id }}&s={{ s }}&e={{ e|add:'-1' }}'"
+        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full sm:w-auto {% if e == '1' and s == '1' %}hidden{% endif %} sm:mr-2"
       >
-        <button
-          onclick="location.href='{% url 'showplayer' %}?id={{ show_details.id }}&s={{ s }}&e={{ e|add:'-1' }}'"
-            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full sm:w-auto {% if e == '1' and s == "1" %}hidden{% endif %} mr-2"
-        >
-          Previous Episode
-        </button>
-
-        <form action="{% url 'showplayer' %}" method="get" class="flex items-center w-full sm:w-auto">
-          <input type="hidden" name="id" value="{{ show_details.id }}" />
-
-          <label for="seasonDropdown" class="text-lg font-semibold text-gray-300 mr-2">
+        Previous Episode
+      </button>
+    
+      <form action="{% url 'showplayer' %}" method="get" class="flex flex-col sm:flex-row items-center w-full sm:w-auto space-y-4 sm:space-y-0 sm:space-x-4">
+        <input type="hidden" name="id" value="{{ show_details.id }}" />
+    
+        <div class="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0">
+          <label for="seasonDropdown" class="text-lg font-semibold text-gray-300">
             Select Season:
           </label>
-
           <select
             id="seasonDropdown"
             name="s"
-            class="bg-gray-700 text-white border border-gray-600 rounded p-2 appearance-none w-full sm:w-auto"
+            class="bg-gray-700 text-white border border-gray-600 rounded p-2 appearance-none w-full sm:w-40"
             style="background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px);"
           >
             {% for season in show_details.seasons %}
@@ -79,36 +81,43 @@
             {% endif %}
             {% endfor %}
           </select>
-
-          <label for="episodeDropdown" class="ml-4 text-lg font-semibold text-gray-300 mr-2">
+        </div>
+    
+        <div class="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0">
+          <label for="episodeDropdown" class="text-lg font-semibold text-gray-300">
             Enter Episode Number:
           </label>
-
           <input
             type="number"
             id="episodeDropdown"
             name="e"
-            class="bg-gray-700 text-white border border-gray-600 rounded p-2 w-16 appearance-none"
+            class="bg-gray-700 text-white border border-gray-600 rounded p-2 w-full sm:w-24"
             min="1"
             style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);"
           />
-
-          <button
-            type="submit"
-            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-2"
-          >
-            Go!
-          </button>
-        </form>
-
+        </div>
+    
         <button
-          onclick="location.href='{% url 'showplayer' %}?id={{ show_details.id }}&s={{ s }}&e={{ e|add:'1' }}'"
-          class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full sm:w-auto sm:ml-4"
+          type="submit"
+          class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-2"
         >
-          Next Episode
+          Go!
         </button>
-      </div>
+      </form>
+    
+      <!-- Next Episode Button -->
+      <button
+        onclick="location.href='{% url 'showplayer' %}?id={{ show_details.id }}&s={{ s }}&e={{ e|add:'1' }}'"
+        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full sm:w-auto sm:ml-2"
+      >
+        Next Episode
+      </button>
     </div>
+    
+
+
+
+  
 
     <!-- Show Details and Poster -->
     <div class="flex flex-col lg:flex-row lg:space-x-8 mb-8">
@@ -126,7 +135,7 @@
         <div
           class="rounded-lg p-4 sm:p-6 mb-6"
           style="
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(10px);
           "
         >
@@ -153,7 +162,7 @@
     <!-- Genres -->
     <div
       class="rounded-lg p-4 sm:p-6 mb-6"
-      style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px)"
+      style="background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px)"
     >
       <h2 class="text-2xl font-semibold mb-4">Genres</h2>
       <ul class="list-disc list-inside text-gray-300">
@@ -166,7 +175,7 @@
     <!-- Production Companies -->
     <div
       class="rounded-lg p-4 sm:p-6 mb-6"
-      style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px)"
+      style="background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px)"
     >
       <h2 class="text-2xl font-semibold mb-4">Production Companies</h2>
       <ul class="list-disc list-inside text-gray-300">
@@ -179,7 +188,7 @@
     <!-- Additional Information -->
     <div
       class="rounded-lg p-4 sm:p-6 mb-6"
-      style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px)"
+      style="background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px)"
     >
       <h2 class="text-2xl font-semibold mb-4">Additional Information</h2>
       <p class="text-gray-300">Popularity: {{ show_details.popularity }}</p>
@@ -198,7 +207,7 @@
     <!-- You May Also Like -->
     <div
       class="rounded-lg p-4 sm:p-6 mb-6"
-      style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px)"
+      style="background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px)"
     >
       <h2 class="text-2xl font-semibold mb-4">You May Also Like</h2>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -231,4 +240,9 @@
     </div>
   </div>
 </div>
+
+
+
+
+
 {% endblock content %}
