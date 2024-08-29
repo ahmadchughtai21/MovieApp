@@ -22,7 +22,15 @@
         <!-- Video Player -->
         <div class="mb-8">
             <div class="rounded-lg shadow-lg overflow-hidden" style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);">
-                <iframe src="{{ vid_url }}" frameborder="0" class="w-full h-56 sm:h-96" id="videoPlayer" allow="fullscreen"></iframe>
+                <iframe
+  src="{{ vid_url }}"
+  frameborder="0"
+  class="w-full h-64 sm:h-96"
+  id="videoPlayer"
+  allow="autoplay; fullscreen; picture-in-picture"
+  allowfullscreen
+  playsinline
+></iframe>
             </div>
         </div>
 

@@ -24,7 +24,7 @@
     <p class="text-xl sm:text-2xl italic text-gray-300 mb-6">
       Season {{ ep_details.season_number }}, Episode Number
       {{ ep_details.episode_number }}
-      {% if ep_details.name %} {{ ep_details.name }} {% else %} (The episode
+      {% if ep_details.name %} ({{ ep_details.name }}) {% else %} (The episode
       doesn't exist) {% endif %}
     </p>
 
@@ -37,13 +37,15 @@
           backdrop-filter: blur(10px);
         "
       >
-        <iframe
-          src="{{ vid_url }}"
-          frameborder="0"
-          class="w-full h-64 sm:h-96"
-          id="videoPlayer"
-          allow="fullscreen"
-        ></iframe>
+      <iframe
+      src="{{ vid_url }}"
+      frameborder="0"
+      class="w-full h-64 sm:h-96"
+      id="videoPlayer"
+      allow="autoplay; fullscreen; picture-in-picture"
+      allowfullscreen
+      playsinline
+    ></iframe>
       </div>
 
       <div
@@ -206,7 +208,7 @@
         >
           {% if show.poster_path == null %}
           <img
-            src="{% static 'img/no-image-available.png' %}"
+            src="{% static 'img/null.png' %}"
             alt="{{ show.title }}"
             class="w-20 h-28 object-cover rounded-lg"
           />
