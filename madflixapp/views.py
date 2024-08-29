@@ -2,7 +2,7 @@ from django.shortcuts import render
 
 import requests
 
-tmdb_api_key="094fb2bd51d27c7e737e0111053401dd"
+# tmdb_api_key="094fb2bd51d27c7e737e0111053401dd"
 
 movies_genres = [
     {
