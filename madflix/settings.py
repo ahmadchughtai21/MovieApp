@@ -96,7 +96,7 @@ import os
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'theme', 'static'),
 ]
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_ROOT = os.path.join(BASE_DIR, 'theme', 'staticfiles')
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
