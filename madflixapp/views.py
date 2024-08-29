@@ -216,7 +216,7 @@ def movies(request):
 def moviesearchresult(request):
     if request.method == 'POST':
         search_query = request.POST.get('search_query')
-        url = f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&query={search_query}&language=en-US"
+        url = f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&query={search_query}"
         response = requests.get(url)
         data = response.json()
         return render(request, "moviesearchresult.html", {'data': data})
@@ -232,7 +232,7 @@ def movieplayer(request):
     if request.method == 'GET':
         id = request.GET.get('id')
         data['vid_url'] = f"https://vidsrc.cc/v2/embed/movie/{id}"
-        url=f"https://api.themoviedb.org/3/movie/{id}?api_key={tmdb_api_key}&language=en-US"
+        url=f"https://api.themoviedb.org/3/movie/{id}?api_key={tmdb_api_key}"
         url_similar_movies = f"https://api.themoviedb.org/3/movie/{id}/similar?api_key={tmdb_api_key}"
         response = requests.get(url)
         response_similar_movies = requests.get(url_similar_movies)
@@ -267,7 +267,7 @@ def shows(request):
 def showsearchresult(request):
     if request.method == 'POST':
         search_query = request.POST.get('search_query')
-        url = f"https://api.themoviedb.org/3/search/tv?api_key={tmdb_api_key}&query={search_query}&language=en-US"
+        url = f"https://api.themoviedb.org/3/search/tv?api_key={tmdb_api_key}&query={search_query}"
         response = requests.get(url)
         data = response.json()
         return render(request, "showsearchresult.html", {'data': data})
@@ -300,7 +300,7 @@ def showplayer(request):
 
         # Get show details
         url = f"https://api.themoviedb.org/3/tv/{id}?api_key={tmdb_api_key}"
-        url2 = f"https://api.themoviedb.org/3/tv/{id}/season/{s}/episode/{e}?api_key={tmdb_api_key}&language=en-US"
+        url2 = f"https://api.themoviedb.org/3/tv/{id}/season/{s}/episode/{e}?api_key={tmdb_api_key}"
         url_similar_shows = f"https://api.themoviedb.org/3/tv/{id}/similar?api_key={tmdb_api_key}"
         response = requests.get(url)
         response2 = requests.get(url2)
