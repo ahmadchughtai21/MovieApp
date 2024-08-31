@@ -37,25 +37,20 @@ The application interacts with the [TMDB API](https://www.themoviedb.org/documen
     pip install django requests
     ```
 
-3. **Create a `.env` file**:
-    Create a `.env` file in the root of your project and add your TMDB API key:
-    ```
-    TMDB_API_KEY=your_tmdb_api_key
-    ```
 
-4. **Run migrations**:
+3. **Run migrations**:
     Apply the migrations to set up the database:
     ```bash
     python manage.py migrate
     ```
 
-5. **Run the server**:
+4. **Run the server**:
     Start the Django development server:
     ```bash
     python manage.py runserver
     ```
 
-6. **Access the application**:
+5. **Access the application**:
     Open your browser and go to `http://127.0.0.1:8000` to view the application.
 
 ## Project Structure
@@ -88,12 +83,16 @@ The application interacts with the [TMDB API](https://www.themoviedb.org/documen
 - **Movies by Genre**: `https://api.themoviedb.org/3/discover/movie?with_genres={id}`
 - **TV Shows by Genre**: `https://api.themoviedb.org/3/discover/tv?with_genres={id}`
 
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgements
 
 - [TMDB API](https://www.themoviedb.org/documentation/api) for providing the movie and TV show data.
 - [VidSrc](https://vidsrc.cc/) for the embedded video player.
+
+
+## Screenshots
+
+![Screenshot_31-8-2024_15031_tenflix online](https://github.com/user-attachments/assets/23877bdf-7463-4cde-b883-dc805a09bab8)
+![Screenshot_31-8-2024_1516_tenflix online](https://github.com/user-attachments/assets/b79c62f9-d679-4274-8e9a-9c0f94e4ccfa)
+![Screenshot_31-8-2024_15346_tenflix online](https://github.com/user-attachments/assets/2f8b9e87-71b5-4e24-b64c-04144cf040f3)
 
