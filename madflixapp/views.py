@@ -3,7 +3,7 @@ import requests
 import os
 
 
-tmdb_api_key = os.getenv('tmdb_api_key')
+tmdb_api_key = "094fb2bd51d27c7e737e0111053401dd"
 
 movies_genres = [
     {
