@@ -1,3 +1,5 @@
+You can checkout the website here:- [tenflix.online](https://tenflix.online)
+
 # Django Movie and TV Show Browsing Platform
 
 This project is a Django-based web application that allows users to browse and watch movies and TV shows by fetching data from the TMDB API. The platform includes features like trending movies and shows, search functionality, genre-based browsing, and an embedded video player for movies and TV shows.
