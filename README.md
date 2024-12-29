@@ -1,4 +1,4 @@
-You can checkout the website here:- [tenflix.online](https://tenflix.online)
+You can checkout the website here:- (https://movieapp-production-3cdf.up.railway.app/)
 
 # Django Movie and TV Show Browsing Platform
 
