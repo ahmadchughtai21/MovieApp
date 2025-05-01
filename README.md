@@ -1,4 +1,4 @@
-You can checkout the website here:- (https://movieapp-production-3cdf.up.railway.app/)
+You can checkout the website here:- ([https://movieapp-production-3cdf.up.railway.app/](https://divine-lynnelle-ahmadchughtai-7ece75ac.koyeb.app/))
 
 # Django Movie and TV Show Browsing Platform
 
