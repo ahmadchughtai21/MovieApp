@@ -1,4 +1,4 @@
-You can checkout the website here:- (https://divine-lynnelle-ahmadchughtai-7ece75ac.koyeb.app/)
+You can checkout the website here:- (https://tenflix.online/)
 
 # Django Movie and TV Show Browsing Platform
 
@@ -29,14 +29,14 @@ The application interacts with the [TMDB API](https://www.themoviedb.org/documen
 
 1. **Clone the repository**:
     ```bash
-    git clone https://github.com/your-username/your-repository.git
-    cd your-repository
+    git clone https://github.com/ahmadchughtai21/MovieApp
+    cd MovieApp
     ```
 
 2. **Install dependencies**:
-    Make sure you have Django and requests installed. You can install them using pip:
+    Make sure you have Django and other requests installed. You can install them using pip:
     ```bash
-    pip install django requests
+    pip install -r requirements.txt
     ```
 
 
