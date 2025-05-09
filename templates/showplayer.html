@@ -29,7 +29,7 @@
       doesn't exist) {% endif %}
     </p>
 
-    <!-- Video Player -->
+<!-- Video Player -->
     <div class="mb-8">
       <div
         class="rounded-lg shadow-lg overflow-hidden"
@@ -38,16 +38,58 @@
           backdrop-filter: blur(10px);
         "
       >
-      <iframe
-      src="{{ vid_url }}"
-      frameborder="0"
-      class="w-full h-64 sm:h-96"
-      id="videoPlayer"
-      allow="autoplay; fullscreen; picture-in-picture"
-      allowfullscreen
-      playsinline
-    ></iframe>
+        <div id="videoContainer" class="relative w-full h-64 sm:h-96">
+          <iframe
+            src="{{ vid_url }}"
+            frameborder="0"
+            class="w-full h-full"
+            id="videoPlayer"
+            allow="autoplay; fullscreen; picture-in-picture"
+            allowfullscreen
+            playsinline
+          ></iframe>
+        </div>
+
+        {% comment %} <div class="flex justify-center items-center py-6">
+          <div class="text-center">
+            <button
+              id="fullscreenBtn"
+              class="px-6 py-3 bg-gray-800 text-white font-bold border border-gray-600 rounded-lg cursor-pointer transition-transform transform hover:bg-gray-700 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-500"
+            >
+              Go Fullscreen
+            </button>
+          </div>
+        </div> {% endcomment %}
+
+
+        <script>
+          const videoContainer = document.getElementById("videoContainer");
+          const fullscreenBtn = document.getElementById("fullscreenBtn");
+
+          // Function to enter fullscreen
+          function enterFullscreen(element) {
+            if (element.requestFullscreen) {
+              element.requestFullscreen();
+            } else if (element.mozRequestFullScreen) {
+              // Firefox
+              element.mozRequestFullScreen();
+            } else if (element.webkitRequestFullscreen) {
+              // Chrome/Safari
+              element.webkitRequestFullscreen();
+            } else if (element.msRequestFullscreen) {
+              // IE/Edge
+              element.msRequestFullscreen();
+            }
+          }
+
+          // Toggle fullscreen on button click
+          fullscreenBtn.addEventListener("click", () => {
+            enterFullscreen(videoContainer);
+          });
+        </script>
       </div>
+    </div>
+
 
 
       <div

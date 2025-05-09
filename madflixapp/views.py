@@ -159,6 +159,7 @@ def home(request):
         'm_trending_this_week': '',
         'popular': '',
         'upcoming': '',
+        'm_top_rated': '',
         'airing_today': '',
         'on_the_air': '',
         's_trending_this_week': '',
@@ -169,6 +170,7 @@ def home(request):
     m_trending_this_week = f"https://api.themoviedb.org/3/trending/movie/week?api_key={tmdb_api_key}"
     popular = f"https://api.themoviedb.org/3/movie/popular?api_key={tmdb_api_key}"
     upcoming = f"https://api.themoviedb.org/3/movie/upcoming?api_key={tmdb_api_key}"
+    m_top_rated = f"https://api.themoviedb.org/3/movie/top_rated?api_key={tmdb_api_key}"
     airing_today = f"https://api.themoviedb.org/3/tv/airing_today?api_key={tmdb_api_key}"
     on_the_air = f"https://api.themoviedb.org/3/tv/on_the_air?api_key={tmdb_api_key}"
     s_trending_this_week = f"https://api.themoviedb.org/3/trending/tv/week?api_key={tmdb_api_key}"
@@ -178,6 +180,7 @@ def home(request):
     response_m_trending_this_week = requests.get(m_trending_this_week)
     response_popular = requests.get(popular)
     response_upcoming = requests.get(upcoming)
+    response_m_top_rated = requests.get(m_top_rated)
     response_airing_today = requests.get(airing_today)
     response_on_the_air = requests.get(on_the_air)
     response_s_trending_this_week = requests.get(s_trending_this_week)
@@ -187,6 +190,7 @@ def home(request):
     data['m_trending_this_week'] = response_m_trending_this_week.json()
     data['popular'] = response_popular.json()
     data['upcoming'] = response_upcoming.json()
+    data['m_top_rated'] = response_m_top_rated.json()
     data['airing_today'] = response_airing_today.json()
     data['on_the_air'] = response_on_the_air.json()
     data['s_trending_this_week'] = response_s_trending_this_week.json()
@@ -231,7 +235,7 @@ def movieplayer(request):
     }
     if request.method == 'GET':
         id = request.GET.get('id')
-        data['vid_url'] = f"https://vidsrc.cc/v2/embed/movie/{id}"
+        data['vid_url'] = f"https://vidapi.xyz/embedmulti/movie/{id}"
         url=f"https://api.themoviedb.org/3/movie/{id}?api_key={tmdb_api_key}"
         url_similar_movies = f"https://api.themoviedb.org/3/movie/{id}/similar?api_key={tmdb_api_key}"
         response = requests.get(url)
@@ -315,7 +319,7 @@ def showplayer(request):
         data['similar_shows'] = similar_shows
         data['s'] = s
         data['e'] = e
-        data['vid_url'] = f"https://vidsrc.cc/v2/embed/tv/{id}/{s}/{e}"
+        data['vid_url'] = f"https://vidapi.xyz/embedmulti/tv/{id}&s{s}&e={e}"
 
         return render(request, "showplayer.html", data)
         
