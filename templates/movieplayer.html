@@ -162,8 +162,7 @@
         </p>
         <p class="text-gray-300">Popularity: {{ mov_details.popularity }}</p>
         <p class="text-gray-300">
-          Vote Average: {{ mov_details.vote_average }} ({{
-          mov_details.vote_count }} votes)
+          Vote Average: {{ mov_details.vote_average }} ({{ mov_details.vote_count }} votes)
         </p>
         <p class="text-gray-300">Status: {{ mov_details.status }}</p>
         <p class="text-gray-300">
@@ -217,7 +216,7 @@
                 {{ movie.release_date }}
               </p>
               <p class="text-gray-300 text-sm sm:text-base">
-                {{ movie.vote_average }} ({{movie.vote_count}} votes)
+                {{ movie.vote_average }} ({{ movie.vote_count }} votes)
               </p>
             </div>
           </a>
