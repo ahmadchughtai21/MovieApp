@@ -5,16 +5,40 @@
 {% block content %}
 <div class="relative min-h-screen bg-gray-900 text-white">
   <!-- Fullscreen Background Poster with Dark Blur Gradient -->
-  <div class="absolute inset-0 z-0">
-    <img
-      src="https://media.themoviedb.org/t/p/original/{{ show_details.backdrop_path }}"
-      alt="{{ show_details.title }} Background"
-      class="w-full h-full object-cover mx-auto"
-    />
-    <div
-      class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black opacity-75"
-    ></div>
-  </div>
+  <div class="relative min-h-screen bg-gray-900">
+    <div style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: -1;
+      overflow: hidden;
+    ">
+      <img 
+        src="https://media.themoviedb.org/t/p/original/{{ show_details.backdrop_path }}"
+        style="
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          filter: blur(5px) brightness(0.7);
+        "
+        alt="Background"
+      />
+      <div style="
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(to bottom,
+          rgba(17, 24, 39, 0.8),
+          rgba(17, 24, 39, 0.6),
+          rgba(17, 24, 39, 0.8)
+        );
+      "></div>
+    </div>
 
   <!-- Content Container -->
   <div class="relative z-10 p-4 sm:p-8 max-w-5xl mx-auto">
@@ -97,12 +121,15 @@
       style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);"
     >
       <!-- Previous Episode Button -->
+      {% if prev_episode %}
       <button
-        onclick="location.href='{% url 'showplayer' %}?id={{ show_details.id }}&s={{ s }}&e={{ e|add:'-1' }}'"
-        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full sm:w-auto {% if e == '1' and s == '1' %}hidden{% endif %} sm:mr-2"
+        onclick="location.href='{% url 'showplayer' %}?id={{ show_details.id }}&s={{ prev_episode.season }}&e={{ prev_episode.episode }}'"
+        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full sm:w-auto sm:mr-2"
+        title="Season {{ prev_episode.season }}, Episode {{ prev_episode.episode }}"
       >
         Previous Episode
       </button>
+      {% endif %}
     
       <form action="{% url 'showplayer' %}" method="get" class="flex flex-col sm:flex-row items-center w-full sm:w-auto space-y-4 sm:space-y-0 sm:space-x-4">
         <input type="hidden" name="id" value="{{ show_details.id }}" />
@@ -116,27 +143,27 @@
             name="s"
             class="bg-gray-700 text-white border border-gray-600 rounded p-2 appearance-none w-full sm:w-40"
             style="background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px);"
+            onchange="updateEpisodeDropdown(this.value)"
           >
-            {% for season in show_details.seasons %}
-            {% if season.air_date %}
-            <option value="{{ season.season_number }}">{{ season.name }}</option>
-            {% endif %}
+            {% for season in seasons_data %}
+              <option value="{{ season.season_number }}" {% if season.season_number == s %}selected{% endif %}>
+                {{ season.name }} ({{ season.episode_count }} Episodes)
+              </option>
             {% endfor %}
           </select>
         </div>
     
         <div class="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0">
           <label for="episodeDropdown" class="text-lg font-semibold text-gray-300">
-            Enter Episode Number:
+            Select Episode:
           </label>
-          <input
-            type="number"
+          <select
             id="episodeDropdown"
             name="e"
-            class="bg-gray-700 text-white border border-gray-600 rounded p-2 w-full sm:w-24"
-            min="1"
-            style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);"
-          />
+            class="bg-gray-700 text-white border border-gray-600 rounded p-2 appearance-none w-full sm:w-40"
+            style="background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px);"
+          >
+          </select>
         </div>
     
         <button
@@ -146,14 +173,52 @@
           Go!
         </button>
       </form>
+
+      <script>
+        // Store season data in JavaScript
+        const seasonsData = {
+          {% for season in seasons_data %}
+            {{ season.season_number }}: {{ season.episode_count }},
+          {% endfor %}
+        };
+
+        // Function to update episode dropdown based on selected season
+        function updateEpisodeDropdown(seasonNumber) {
+          const episodeCount = seasonsData[seasonNumber];
+          const episodeDropdown = document.getElementById('episodeDropdown');
+          const currentEpisode = {{ e }};
+
+          // Clear existing options
+          episodeDropdown.innerHTML = '';
+
+          // Add new options based on episode count
+          for (let i = 1; i <= episodeCount; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.text = `Episode ${i}`;
+            if (i === currentEpisode) {
+              option.selected = true;
+            }
+            episodeDropdown.appendChild(option);
+          }
+        }
+
+        // Initialize episode dropdown with current season's episodes
+        document.addEventListener('DOMContentLoaded', function() {
+          updateEpisodeDropdown({{ s }});
+        });
+      </script>
     
       <!-- Next Episode Button -->
+      {% if next_episode %}
       <button
-        onclick="location.href='{% url 'showplayer' %}?id={{ show_details.id }}&s={{ s }}&e={{ e|add:'1' }}'"
+        onclick="location.href='{% url 'showplayer' %}?id={{ show_details.id }}&s={{ next_episode.season }}&e={{ next_episode.episode }}'"
         class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full sm:w-auto sm:ml-2"
+        title="Season {{ next_episode.season }}, Episode {{ next_episode.episode }}"
       >
         Next Episode
       </button>
+      {% endif %}
     </div>
     
 

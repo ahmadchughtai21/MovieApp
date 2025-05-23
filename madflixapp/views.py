@@ -295,6 +295,9 @@ def showplayer(request):
         'similar_shows': '',
         'e': '',
         's': '',
+        'seasons_data': [],
+        'next_episode': None,
+        'prev_episode': None,
     }
     
     if request.method == 'GET':
@@ -313,12 +316,68 @@ def showplayer(request):
         show_details = response.json()
         ep_details = response2.json()
         similar_shows = response_similar_shows.json()
+
+        # Get detailed season information including episode counts
+        seasons_data = []
+        if 'seasons' in show_details:
+            for season in show_details['seasons']:
+                if season['air_date']:  # Only include seasons with air dates
+                    season_url = f"https://api.themoviedb.org/3/tv/{id}/season/{season['season_number']}?api_key={tmdb_api_key}"
+                    season_response = requests.get(season_url)
+                    season_data = season_response.json()
+                    seasons_data.append({
+                        'season_number': season['season_number'],
+                        'name': season['name'],
+                        'episode_count': len(season_data.get('episodes', [])),
+                        'air_date': season['air_date']
+                    })
+
+        # Calculate next and previous episode information
+        current_season = None
+        next_season = None
+        prev_season = None
+        
+        # Find current, next and previous seasons
+        for i, season in enumerate(seasons_data):
+            if season['season_number'] == s:
+                current_season = season
+                if i > 0:
+                    prev_season = seasons_data[i - 1]
+                if i < len(seasons_data) - 1:
+                    next_season = seasons_data[i + 1]
+                break
+
+        if current_season:
+            # Calculate next episode
+            if e < current_season['episode_count']:
+                data['next_episode'] = {
+                    'season': s,
+                    'episode': e + 1
+                }
+            elif next_season:
+                data['next_episode'] = {
+                    'season': next_season['season_number'],
+                    'episode': 1
+                }
+
+            # Calculate previous episode
+            if e > 1:
+                data['prev_episode'] = {
+                    'season': s,
+                    'episode': e - 1
+                }
+            elif prev_season:
+                data['prev_episode'] = {
+                    'season': prev_season['season_number'],
+                    'episode': prev_season['episode_count']
+                }
         
         data['show_details'] = show_details
         data['ep_details'] = ep_details
         data['similar_shows'] = similar_shows
         data['s'] = s
         data['e'] = e
+        data['seasons_data'] = seasons_data
         data['vid_url'] = f"https://vidapi.xyz/embedmulti/tv/{id}&s{s}&e={e}"
 
         return render(request, "showplayer.html", data)
@@ -366,4 +425,4 @@ def showsgenre(request):
     genre = next((item['name'] for item in shows_genres if item['id'] == int(id)), None)
     data['genre'] = genre
     return render(request, "showsgenre.html", data)
-    
+

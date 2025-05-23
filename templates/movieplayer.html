@@ -1,58 +1,92 @@
-{% extends "base.html" %} {% load static %} {% block title %}{{ mov_details.title }}{% endblock title %} {% block content %}
+{% extends "base.html" %} {% load static %} {% block title %} 
+{{ mov_details.title }}{% endblock title %} {% block content %}
 <div class="relative min-h-screen bg-gray-900 text-white">
   <!-- Fullscreen Background Poster with Dark Blur Gradient -->
-  <div class="absolute inset-0 z-0">
-    <img
-      src="https://media.themoviedb.org/t/p/original/{{ mov_details.backdrop_path }}"
-      alt="{{ mov_details.title }} Background"
-      class="w-full h-full object-cover mx-auto my-auto"
-    />
+  <div class="relative min-h-screen bg-gray-900">
     <div
-      class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black opacity-75"
-    ></div>
-  </div>
-
-  <!-- Content Container -->
-  <div class="relative z-10 p-4 sm:p-8 max-w-5xl mx-auto">
-    <!-- Movie Title -->
-    <h1 class="text-3xl sm:text-5xl font-bold mb-4">{{ mov_details.title }}</h1>
-
-    <!-- Tagline -->
-    <p class="text-xl sm:text-2xl italic text-gray-300 mb-6">
-      {{ mov_details.tagline }}
-    </p>
-
-    <!-- Video Player -->
-    <div class="mb-8">
-      <div
-        class="rounded-lg shadow-lg overflow-hidden"
+      style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: -1;
+        overflow: hidden;
+      "
+    >
+      <img
+        src="https://media.themoviedb.org/t/p/original/{{ mov_details.backdrop_path }}"
         style="
-          background: rgba(255, 255, 255, 0.1);
-          backdrop-filter: blur(10px);
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          filter: blur(5px) brightness(0.7);
         "
-      >
-        <div id="videoContainer" class="relative w-full h-64 sm:h-96">
-          <iframe
-            src="{{ vid_url }}"
-            frameborder="0"
-            class="w-full h-full"
-            id="videoPlayer"
-            allow="autoplay; fullscreen; picture-in-picture"
-            allowfullscreen
-            playsinline
-          ></iframe>
-        </div>
+        alt="Background"
+      />
+      <div
+        style="
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: linear-gradient(
+            to bottom,
+            rgba(17, 24, 39, 0.8),
+            rgba(17, 24, 39, 0.6),
+            rgba(17, 24, 39, 0.8)
+          );
+        "
+      ></div>
+    </div>
 
-        {% comment %} <div class="flex justify-center items-center py-6">
-          <div class="text-center">
-            <button
-              id="fullscreenBtn"
-              class="px-6 py-3 bg-gray-800 text-white font-bold border border-gray-600 rounded-lg cursor-pointer transition-transform transform hover:bg-gray-700 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-500"
-            >
-              Go Fullscreen
-            </button>
+    <!-- Content Container -->
+    <div class="relative z-10 p-4 sm:p-8 max-w-5xl mx-auto">
+      <!-- Movie Title -->
+      <h1 class="text-3xl sm:text-5xl font-bold mb-4">
+        {{ mov_details.title }}
+      </h1>
+
+      <!-- Tagline -->
+      <p class="text-xl sm:text-2xl italic text-gray-300 mb-6">
+        {{ mov_details.tagline }}
+      </p>
+
+      <!-- Video Player -->
+      <div class="mb-8">
+        <div
+          class="rounded-lg shadow-lg overflow-hidden"
+          style="
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+          "
+        >
+          <div id="videoContainer" class="relative w-full h-64 sm:h-96">
+            <iframe
+              src="{{ vid_url }}"
+              frameborder="0"
+              class="w-full h-full"
+              id="videoPlayer"
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowfullscreen
+              playsinline
+            ></iframe>
           </div>
-        </div> {% endcomment %}
+
+          {% comment %}
+          <div class="flex justify-center items-center py-6">
+            <div class="text-center">
+              <button
+                id="fullscreenBtn"
+                class="px-6 py-3 bg-gray-800 text-white font-bold border border-gray-600 rounded-lg cursor-pointer transition-transform transform hover:bg-gray-700 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-500"
+              >
+                Go Fullscreen
+              </button>
+            </div>
+          </div>
+          {% endcomment %}
 
           <script>
             const videoContainer = document.getElementById("videoContainer");
@@ -162,7 +196,8 @@
         </p>
         <p class="text-gray-300">Popularity: {{ mov_details.popularity }}</p>
         <p class="text-gray-300">
-          Vote Average: {{ mov_details.vote_average }} ({{ mov_details.vote_count }} votes)
+          Vote Average: {{ mov_details.vote_average }} ({{
+          mov_details.vote_count }} votes)
         </p>
         <p class="text-gray-300">Status: {{ mov_details.status }}</p>
         <p class="text-gray-300">
