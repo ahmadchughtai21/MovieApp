@@ -1,4 +1,4 @@
-You can checkout the website here:- (https://tenflix.online/)
+You can checkout the website here:- (https://tenflix.ahmadchughtai.me/)
 
 # Django Movie and TV Show Browsing Platform
 
