@@ -13,5 +13,6 @@ urlpatterns = [
     path("showplayer", views.showplayer, name="showplayer"),
     path("moviesgenre", views.moviesgenre, name="moviesgenre"),
     path("showsgenre", views.showsgenre, name="showsgenre"),
+    path("api-docs/", views.api_documentation, name="api-documentation"),
 
 ]

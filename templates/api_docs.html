@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MadFlix API Documentation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            line-height: 1.6;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .endpoint-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .endpoint {
+            background: #f8f9fa;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+        .method {
+            background: #28a745;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .url {
+            font-family: monospace;
+            background: #e9ecef;
+            padding: 5px 10px;
+            border-radius: 3px;
+            margin: 5px 0;
+            display: inline-block;
+        }
+        .params {
+            color: #6c757d;
+            font-style: italic;
+            font-size: 14px;
+        }
+        .description {
+            color: #495057;
+            margin-top: 10px;
+        }
+        h2 {
+            color: #343a40;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .base-info {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .try-it-btn {
+            background: #007bff;
+            color: white;
+            padding: 5px 10px;
+            text-decoration: none;
+            border-radius: 3px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .try-it-btn:hover {
+            background: #0056b3;
+            color: white;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎬 MadFlix API Documentation</h1>
+        <p>RESTful API for Movies and TV Shows Data</p>
+    </div>
+
+    <div class="base-info">
+        <strong>Base URL:</strong> <code>{{ request.build_absolute_uri }}/api/</code><br>
+        <strong>Response Format:</strong> JSON<br>
+        <strong>Authentication:</strong> Not required - All endpoints are public<br>
+        <strong>CORS:</strong> Enabled for frontend development
+    </div>
+
+    <!-- Home & General -->
+    <div class="endpoint-section">
+        <h2>🏠 Home & General</h2>
+
+        <div class="endpoint">
+            <span class="method">GET</span>
+            <span class="url">/api/</span>
+            <a href="/api/" class="try-it-btn" target="_blank">Try it</a>
+            <div class="description">List all available API endpoints (JSON format)</div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method">GET</span>
+            <span class="url">/api/home/</span>
+            <a href="/api/home/" class="try-it-btn" target="_blank">Try it</a>
+            <div class="description">Get all homepage data including trending movies/shows, popular content, etc.</div>
+        </div>
+    </div>
+
+    <!-- Movies -->
+    <div class="endpoint-section">
+        <h2>🎬 Movies</h2>
+
+        <div class="endpoint">
+            <span class="method">GET</span>
+            <span class="url">/api/movies/</span>
+            <a href="/api/movies/" class="try-it-btn" target="_blank">Try it</a>
+            <div class="description">Get all movie categories (now playing, popular, upcoming)</div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method">GET</span>
+            <span class="url">/api/movies/trending/</span>
+            <a href="/api/movies/trending/" class="try-it-btn" target="_blank">Try it</a>
+            <div class="params">?time_window=week (day|week)</div>
+            <div class="description">Get trending movies</div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method">GET</span>
+            <span class="url">/api/movies/popular/</span>
+            <a href="/api/movies/popular/" class="try-it-btn" target="_blank">Try it</a>
+            <div class="params">?page=1</div>
+            <div class="description">Get popular movies with pagination</div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method">GET</span>
+            <span class="url">/api/movies/top-rated/</span>
+            <a href="/api/movies/top-rated/" class="try-it-btn" target="_blank">Try it</a>
+            <div class="params">?page=1</div>
+            <div class="description">Get top rated movies with pagination</div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method">GET</span>
+            <span class="url">/api/movies/upcoming/</span>
+            <a href="/api/movies/upcoming/" class="try-it-btn" target="_blank">Try it</a>
+            <div class="params">?page=1</div>
+            <div class="description">Get upcoming movies with pagination</div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method">GET</span>
+            <span class="url">/api/movies/now-playing/</span>
+            <a href="/api/movies/now-playing/" class="try-it-btn" target="_blank">Try it</a>
+            <div class="params">?page=1</div>
+            <div class="description">Get now playing movies with pagination</div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method">GET</span>
+            <span class="url">/api/movies/search/</span>
+            <a href="/api/movies/search/?query=avengers" class="try-it-btn" target="_blank">Try it</a>
+            <div class="params">?query=search_term&page=1</div>
+            <div class="description">Search movies by title</div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method">GET</span>
+            <span class="url">/api/movies/{movie_id}/</span>
+            <a href="/api/movies/550/" class="try-it-btn" target="_blank">Try it</a>
+            <div class="description">Get detailed movie information, similar movies, credits, videos, and streaming URL</div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method">GET</span>
+            <span class="url">/api/movies/genre/</span>
+            <a href="/api/movies/genre/?genre_id=28" class="try-it-btn" target="_blank">Try it</a>
+            <div class="params">?genre_id=28&page=1</div>
+            <div class="description">Get movies by genre ID (28=Action, 35=Comedy, 18=Drama, etc.)</div>
+        </div>
+    </div>
+
+    <!-- TV Shows -->
+    <div class="endpoint-section">
+        <h2>📺 TV Shows</h2>
+
+        <div class="endpoint">
+            <span class="method">GET</span>
+            <span class="url">/api/shows/</span>
+            <a href="/api/shows/" class="try-it-btn" target="_blank">Try it</a>
+            <div class="description">Get all TV show categories (airing today, on air, popular, top rated)</div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method">GET</span>
+            <span class="url">/api/shows/trending/</span>
+            <a href="/api/shows/trending/" class="try-it-btn" target="_blank">Try it</a>
+            <div class="params">?time_window=week (day|week)</div>
+            <div class="description">Get trending TV shows</div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method">GET</span>
+            <span class="url">/api/shows/popular/</span>
+            <a href="/api/shows/popular/" class="try-it-btn" target="_blank">Try it</a>
+            <div class="params">?page=1</div>
+            <div class="description">Get popular TV shows with pagination</div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method">GET</span>
+            <span class="url">/api/shows/top-rated/</span>
+            <a href="/api/shows/top-rated/" class="try-it-btn" target="_blank">Try it</a>
+            <div class="params">?page=1</div>
+            <div class="description">Get top rated TV shows with pagination</div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method">GET</span>
+            <span class="url">/api/shows/airing-today/</span>
+            <a href="/api/shows/airing-today/" class="try-it-btn" target="_blank">Try it</a>
+            <div class="params">?page=1</div>
+            <div class="description">Get TV shows airing today with pagination</div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method">GET</span>
+            <span class="url">/api/shows/on-the-air/</span>
+            <a href="/api/shows/on-the-air/" class="try-it-btn" target="_blank">Try it</a>
+            <div class="params">?page=1</div>
+            <div class="description">Get TV shows currently on the air with pagination</div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method">GET</span>
+            <span class="url">/api/shows/search/</span>
+            <a href="/api/shows/search/?query=friends" class="try-it-btn" target="_blank">Try it</a>
+            <div class="params">?query=search_term&page=1</div>
+            <div class="description">Search TV shows by title</div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method">GET</span>
+            <span class="url">/api/shows/{show_id}/</span>
+            <a href="/api/shows/1399/?season=1&episode=1" class="try-it-btn" target="_blank">Try it</a>
+            <div class="params">?season=1&episode=1</div>
+            <div class="description">Get detailed show information, episodes, similar shows, navigation, and streaming URL</div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method">GET</span>
+            <span class="url">/api/shows/genre/</span>
+            <a href="/api/shows/genre/?genre_id=18" class="try-it-btn" target="_blank">Try it</a>
+            <div class="params">?genre_id=18&page=1</div>
+            <div class="description">Get TV shows by genre ID</div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method">GET</span>
+            <span class="url">/api/shows/{show_id}/season/{season_number}/</span>
+            <a href="/api/shows/1399/season/1/" class="try-it-btn" target="_blank">Try it</a>
+            <div class="description">Get detailed season information with all episodes</div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method">GET</span>
+            <span class="url">/api/shows/{show_id}/season/{season_number}/episode/{episode_number}/</span>
+            <a href="/api/shows/1399/season/1/episode/1/" class="try-it-btn" target="_blank">Try it</a>
+            <div class="description">Get detailed episode information</div>
+        </div>
+    </div>
+
+    <!-- Genres -->
+    <div class="endpoint-section">
+        <h2>🏷️ Genres</h2>
+
+        <div class="endpoint">
+            <span class="method">GET</span>
+            <span class="url">/api/genres/</span>
+            <a href="/api/genres/" class="try-it-btn" target="_blank">Try it</a>
+            <div class="description">Get all genres for both movies and TV shows</div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method">GET</span>
+            <span class="url">/api/genres/movies/</span>
+            <a href="/api/genres/movies/" class="try-it-btn" target="_blank">Try it</a>
+            <div class="description">Get all movie genres</div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method">GET</span>
+            <span class="url">/api/genres/shows/</span>
+            <a href="/api/genres/shows/" class="try-it-btn" target="_blank">Try it</a>
+            <div class="description">Get all TV show genres</div>
+        </div>
+    </div>
+
+    <!-- Utility -->
+    <div class="endpoint-section">
+        <h2>🔧 Utility</h2>
+
+        <div class="endpoint">
+            <span class="method">GET</span>
+            <span class="url">/api/search/</span>
+            <a href="/api/search/?query=marvel" class="try-it-btn" target="_blank">Try it</a>
+            <div class="params">?query=search_term&page=1</div>
+            <div class="description">Search across movies, TV shows, and people</div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method">GET</span>
+            <span class="url">/api/config/</span>
+            <a href="/api/config/" class="try-it-btn" target="_blank">Try it</a>
+            <div class="description">Get TMDB configuration for image URLs and other settings</div>
+        </div>
+    </div>
+
+    <!-- Common Genre IDs -->
+    <div class="endpoint-section">
+        <h2>📋 Common Genre IDs</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+            <div><strong>Movies:</strong></div>
+            <div>28 - Action</div>
+            <div>35 - Comedy</div>
+            <div>18 - Drama</div>
+            <div>27 - Horror</div>
+            <div>878 - Sci-Fi</div>
+            <div>53 - Thriller</div>
+            <div><strong>TV Shows:</strong></div>
+            <div>10759 - Action & Adventure</div>
+            <div>35 - Comedy</div>
+            <div>18 - Drama</div>
+            <div>10765 - Sci-Fi & Fantasy</div>
+            <div>80 - Crime</div>
+            <div>9648 - Mystery</div>
+        </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 40px; color: #6c757d;">
+        <p>🚀 All endpoints return JSON responses with proper error handling and CORS support for frontend development.</p>
+    </div>
+</body>
+</html>

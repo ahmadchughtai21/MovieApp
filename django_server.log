@@ -1,0 +1,17 @@
+Watching for file changes with StatReloader
+[01/Jun/2026 16:57:52] "GET / HTTP/1.1" 200 128647
+[01/Jun/2026 16:57:52] "GET /static/css/dist/styles.css HTTP/1.1" 200 21900
+[01/Jun/2026 16:57:52] "GET /static/css/dist/styles.css?v=1780333072 HTTP/1.1" 200 21900
+[01/Jun/2026 16:57:52] "GET /static/img/logo.png HTTP/1.1" 200 106219
+[01/Jun/2026 16:57:56] "GET /movieplayer?id=1339713 HTTP/1.1" 200 24000
+[01/Jun/2026 16:57:56] "GET /static/css/dist/styles.css?v=1780333076 HTTP/1.1" 200 21900
+[01/Jun/2026 16:58:09] "GET / HTTP/1.1" 200 128647
+[01/Jun/2026 16:58:09] "GET /static/css/dist/styles.css?v=1780333089 HTTP/1.1" 200 21900
+Performing system checks...
+
+System check identified no issues (0 silenced).
+June 01, 2026 - 16:56:21
+Django version 5.1, using settings 'madflix.settings'
+Starting development server at http://0.0.0.0:8001/
+Quit the server with CONTROL-C.
+

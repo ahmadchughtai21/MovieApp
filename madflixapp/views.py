@@ -176,7 +176,7 @@ def home(request):
     s_trending_this_week = f"https://api.themoviedb.org/3/trending/tv/week?api_key={tmdb_api_key}"
     top_rated = f"https://api.themoviedb.org/3/tv/top_rated?api_key={tmdb_api_key}"
     movie_genres = f"https://api.themoviedb.org/3/genre/movie/list?api_key={tmdb_api_key}"
-    show_genres = f"https://api.themoviedb.org/3/genre/tv/list?api_key={tmdb_api_key}"    
+    show_genres = f"https://api.themoviedb.org/3/genre/tv/list?api_key={tmdb_api_key}"
     response_m_trending_this_week = requests.get(m_trending_this_week)
     response_popular = requests.get(popular)
     response_upcoming = requests.get(upcoming)
@@ -204,7 +204,7 @@ def movies(request):
         'now_playing': '',
         'popular': '',
         'upcoming': '',
-        
+
     }
     now_playing = f"https://api.themoviedb.org/3/movie/now_playing?api_key={tmdb_api_key}"
     popular = f"https://api.themoviedb.org/3/movie/popular?api_key={tmdb_api_key}"
@@ -224,7 +224,7 @@ def moviesearchresult(request):
         response = requests.get(url)
         data = response.json()
         return render(request, "moviesearchresult.html", {'data': data})
-        
+
     return render(request, "moviesearchresult.html")
 
 def movieplayer(request):
@@ -235,7 +235,7 @@ def movieplayer(request):
     }
     if request.method == 'GET':
         id = request.GET.get('id')
-        data['vid_url'] = f"https://vidapi.xyz/embedmulti/movie/{id}"
+        data['vid_url'] = f"https://vidsrc-embed.ru/embed/movie/{id}"
         url=f"https://api.themoviedb.org/3/movie/{id}?api_key={tmdb_api_key}"
         url_similar_movies = f"https://api.themoviedb.org/3/movie/{id}/similar?api_key={tmdb_api_key}"
         response = requests.get(url)
@@ -243,7 +243,7 @@ def movieplayer(request):
         data['mov_details'] = response.json()
         data['similar_movies'] = response_similar_movies.json()
         return render(request, "movieplayer.html", data)
-        
+
     return render(request, "movieplayer.html", data)
 
 def shows(request):
@@ -265,7 +265,7 @@ def shows(request):
     data['popular'] = response_popular.json()
     data['on_the_air'] = response_on_the_air.json()
     data['top_rated'] = response_top_rated.json()
-    
+
     return render(request, "shows.html",data)
 
 def showsearchresult(request):
@@ -275,7 +275,7 @@ def showsearchresult(request):
         response = requests.get(url)
         data = response.json()
         return render(request, "showsearchresult.html", {'data': data})
-    
+
     return render(request, "showsearchresult.html")
 
 
@@ -299,7 +299,7 @@ def showplayer(request):
         'next_episode': None,
         'prev_episode': None,
     }
-    
+
     if request.method == 'GET':
         id = request.GET.get('id')
         s = int(request.GET.get('s', '1'))
@@ -312,7 +312,7 @@ def showplayer(request):
         response = requests.get(url)
         response2 = requests.get(url2)
         response_similar_shows = requests.get(url_similar_shows)
-        
+
         show_details = response.json()
         ep_details = response2.json()
         similar_shows = response_similar_shows.json()
@@ -336,7 +336,7 @@ def showplayer(request):
         current_season = None
         next_season = None
         prev_season = None
-        
+
         # Find current, next and previous seasons
         for i, season in enumerate(seasons_data):
             if season['season_number'] == s:
@@ -371,17 +371,17 @@ def showplayer(request):
                     'season': prev_season['season_number'],
                     'episode': prev_season['episode_count']
                 }
-        
+
         data['show_details'] = show_details
         data['ep_details'] = ep_details
         data['similar_shows'] = similar_shows
         data['s'] = s
         data['e'] = e
         data['seasons_data'] = seasons_data
-        data['vid_url'] = f"https://vidapi.xyz/embedmulti/tv/{id}&s{s}&e={e}"
+        data['vid_url'] = f"https://vidsrc-embed.ru/embed/tv?tmdb={id}&season={s}&episode={e}"
 
         return render(request, "showplayer.html", data)
-        
+
     return render(request, "showplayer.html", data)
 
 
@@ -397,7 +397,7 @@ def moviesgenre(request):
     }
     id = request.GET.get('id')
     page = request.GET.get('page')
-    if request.method == 'GET': 
+    if request.method == 'GET':
         url = f"https://api.themoviedb.org/3/discover/movie?api_key={tmdb_api_key}&with_genres={id}&page={page}"
         response = requests.get(url)
         data['movies'] = response.json()
@@ -407,7 +407,7 @@ def moviesgenre(request):
         data['genre'] = genre
         return render(request, "moviesgenre.html", data)
     return render(request, "moviesgenre.html", data)
-    
+
 def showsgenre(request):
     data={
         'shows': '',
@@ -425,4 +425,8 @@ def showsgenre(request):
     genre = next((item['name'] for item in shows_genres if item['id'] == int(id)), None)
     data['genre'] = genre
     return render(request, "showsgenre.html", data)
+
+def api_documentation(request):
+    """Render the API documentation page"""
+    return render(request, "api_docs.html")
 

@@ -1,0 +1,6 @@
+{
+    "git.ignoreLimitWarning": true,
+    "chat.tools.terminal.autoApprove": {
+        "npm install": true
+    }
+}
