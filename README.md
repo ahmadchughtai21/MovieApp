@@ -1,3 +1,7 @@
+## 🔗 View Live
+
+Experience Madflix in action at: [madflix.ahmadchughtai.me](https://madflix.ahmadchughtai.me)
+
 # 🎬 Madflix - Full Stack Movie & TV Show Platform
 
 A comprehensive movie and TV show platform built with Django (backend) and React (frontend), featuring a modern UI design and seamless integration with TMDB API.
@@ -71,9 +75,6 @@ The platform features a clean, modern interface with:
 - **Detailed Views**: Comprehensive information including ratings, cast, crew, and recommendations
 - **Media Playback**: Integrated video player for seamless viewing experience
 
-## 🔗 View Live
-
-Experience Madflix in action at: [madflix.ahmadchughtai.me](https://madflix.ahmadchughtai.me)
 
 ## 🙏 Acknowledgments
 
