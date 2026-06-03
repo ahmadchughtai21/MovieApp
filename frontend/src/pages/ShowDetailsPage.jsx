@@ -13,6 +13,7 @@ import VideoRail from '../components/VideoRail'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
 import ErrorState from '../components/ErrorState'
+import Player from '../components/Player'
 
 export default function ShowDetailsPage() {
   const { id } = useParams()
@@ -149,18 +150,8 @@ export default function ShowDetailsPage() {
         </div>
       </section>
 
-      <Section title="Stream" subtitle="Player loaded by default">
-        <div className="player">
-          <div className="player-aspect">
-            <iframe
-              title={`Stream ${details.name}`}
-              src={streamUrl}
-              allowFullScreen
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-              referrerPolicy="no-referrer"
-            />
-          </div>
-        </div>
+      <Section title="Stream" subtitle="Click fullscreen to watch distraction-free">
+        <Player src={streamUrl} title={`Stream ${details.name}`} />
       </Section>
 
       <Section title="Season and episode" subtitle="Navigate the series">
