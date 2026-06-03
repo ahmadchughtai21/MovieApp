@@ -1,17 +1,274 @@
 Watching for file changes with StatReloader
-[01/Jun/2026 16:57:52] "GET / HTTP/1.1" 200 128647
-[01/Jun/2026 16:57:52] "GET /static/css/dist/styles.css HTTP/1.1" 200 21900
-[01/Jun/2026 16:57:52] "GET /static/css/dist/styles.css?v=1780333072 HTTP/1.1" 200 21900
-[01/Jun/2026 16:57:52] "GET /static/img/logo.png HTTP/1.1" 200 106219
-[01/Jun/2026 16:57:56] "GET /movieplayer?id=1339713 HTTP/1.1" 200 24000
-[01/Jun/2026 16:57:56] "GET /static/css/dist/styles.css?v=1780333076 HTTP/1.1" 200 21900
-[01/Jun/2026 16:58:09] "GET / HTTP/1.1" 200 128647
-[01/Jun/2026 16:58:09] "GET /static/css/dist/styles.css?v=1780333089 HTTP/1.1" 200 21900
-Performing system checks...
+Internal Server Error: /
+Traceback (most recent call last):
+  File "/home/ahmad/repos/MovieApp-React/.venv/lib/python3.14/site-packages/urllib3/connectionpool.py", line 789, in urlopen
+    response = self._make_request(
+        conn,
+    ...<10 lines>...
+        **response_kw,
+    )
+  File "/home/ahmad/repos/MovieApp-React/.venv/lib/python3.14/site-packages/urllib3/connectionpool.py", line 490, in _make_request
+    raise new_e
+  File "/home/ahmad/repos/MovieApp-React/.venv/lib/python3.14/site-packages/urllib3/connectionpool.py", line 466, in _make_request
+    self._validate_conn(conn)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/home/ahmad/repos/MovieApp-React/.venv/lib/python3.14/site-packages/urllib3/connectionpool.py", line 1095, in _validate_conn
+    conn.connect()
+    ~~~~~~~~~~~~^^
+  File "/home/ahmad/repos/MovieApp-React/.venv/lib/python3.14/site-packages/urllib3/connection.py", line 652, in connect
+    sock_and_verified = _ssl_wrap_socket_and_match_hostname(
+        sock=sock,
+    ...<14 lines>...
+        assert_fingerprint=self.assert_fingerprint,
+    )
+  File "/home/ahmad/repos/MovieApp-React/.venv/lib/python3.14/site-packages/urllib3/connection.py", line 805, in _ssl_wrap_socket_and_match_hostname
+    ssl_sock = ssl_wrap_socket(
+        sock=sock,
+    ...<8 lines>...
+        tls_in_tls=tls_in_tls,
+    )
+  File "/home/ahmad/repos/MovieApp-React/.venv/lib/python3.14/site-packages/urllib3/util/ssl_.py", line 465, in ssl_wrap_socket
+    ssl_sock = _ssl_wrap_socket_impl(sock, context, tls_in_tls, server_hostname)
+  File "/home/ahmad/repos/MovieApp-React/.venv/lib/python3.14/site-packages/urllib3/util/ssl_.py", line 509, in _ssl_wrap_socket_impl
+    return ssl_context.wrap_socket(sock, server_hostname=server_hostname)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/ssl.py", line 455, in wrap_socket
+    return self.sslsocket_class._create(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sock=sock,
+        ^^^^^^^^^^
+    ...<5 lines>...
+        session=session
+        ^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/usr/lib/python3.14/ssl.py", line 1076, in _create
+    self.do_handshake()
+    ~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.14/ssl.py", line 1372, in do_handshake
+    self._sslobj.do_handshake()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+ConnectionResetError: [Errno 104] Connection reset by peer
 
-System check identified no issues (0 silenced).
-June 01, 2026 - 16:56:21
-Django version 5.1, using settings 'madflix.settings'
-Starting development server at http://0.0.0.0:8001/
-Quit the server with CONTROL-C.
+During handling of the above exception, another exception occurred:
 
+Traceback (most recent call last):
+  File "/home/ahmad/repos/MovieApp-React/.venv/lib/python3.14/site-packages/requests/adapters.py", line 667, in send
+    resp = conn.urlopen(
+        method=request.method,
+    ...<9 lines>...
+        chunked=chunked,
+    )
+  File "/home/ahmad/repos/MovieApp-React/.venv/lib/python3.14/site-packages/urllib3/connectionpool.py", line 843, in urlopen
+    retries = retries.increment(
+        method, url, error=new_e, _pool=self, _stacktrace=sys.exc_info()[2]
+    )
+  File "/home/ahmad/repos/MovieApp-React/.venv/lib/python3.14/site-packages/urllib3/util/retry.py", line 474, in increment
+    raise reraise(type(error), error, _stacktrace)
+          ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ahmad/repos/MovieApp-React/.venv/lib/python3.14/site-packages/urllib3/util/util.py", line 38, in reraise
+    raise value.with_traceback(tb)
+  File "/home/ahmad/repos/MovieApp-React/.venv/lib/python3.14/site-packages/urllib3/connectionpool.py", line 789, in urlopen
+    response = self._make_request(
+        conn,
+    ...<10 lines>...
+        **response_kw,
+    )
+  File "/home/ahmad/repos/MovieApp-React/.venv/lib/python3.14/site-packages/urllib3/connectionpool.py", line 490, in _make_request
+    raise new_e
+  File "/home/ahmad/repos/MovieApp-React/.venv/lib/python3.14/site-packages/urllib3/connectionpool.py", line 466, in _make_request
+    self._validate_conn(conn)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/home/ahmad/repos/MovieApp-React/.venv/lib/python3.14/site-packages/urllib3/connectionpool.py", line 1095, in _validate_conn
+    conn.connect()
+    ~~~~~~~~~~~~^^
+  File "/home/ahmad/repos/MovieApp-React/.venv/lib/python3.14/site-packages/urllib3/connection.py", line 652, in connect
+    sock_and_verified = _ssl_wrap_socket_and_match_hostname(
+        sock=sock,
+    ...<14 lines>...
+        assert_fingerprint=self.assert_fingerprint,
+    )
+  File "/home/ahmad/repos/MovieApp-React/.venv/lib/python3.14/site-packages/urllib3/connection.py", line 805, in _ssl_wrap_socket_and_match_hostname
+    ssl_sock = ssl_wrap_socket(
+        sock=sock,
+    ...<8 lines>...
+        tls_in_tls=tls_in_tls,
+    )
+  File "/home/ahmad/repos/MovieApp-React/.venv/lib/python3.14/site-packages/urllib3/util/ssl_.py", line 465, in ssl_wrap_socket
+    ssl_sock = _ssl_wrap_socket_impl(sock, context, tls_in_tls, server_hostname)
+  File "/home/ahmad/repos/MovieApp-React/.venv/lib/python3.14/site-packages/urllib3/util/ssl_.py", line 509, in _ssl_wrap_socket_impl
+    return ssl_context.wrap_socket(sock, server_hostname=server_hostname)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/ssl.py", line 455, in wrap_socket
+    return self.sslsocket_class._create(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sock=sock,
+        ^^^^^^^^^^
+    ...<5 lines>...
+        session=session
+        ^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/usr/lib/python3.14/ssl.py", line 1076, in _create
+    self.do_handshake()
+    ~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.14/ssl.py", line 1372, in do_handshake
+    self._sslobj.do_handshake()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+urllib3.exceptions.ProtocolError: ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/ahmad/repos/MovieApp-React/.venv/lib/python3.14/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/ahmad/repos/MovieApp-React/.venv/lib/python3.14/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/ahmad/repos/MovieApp-React/madflixapp/views.py", line 185, in home
+    response_on_the_air = requests.get(on_the_air)
+  File "/home/ahmad/repos/MovieApp-React/.venv/lib/python3.14/site-packages/requests/api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+  File "/home/ahmad/repos/MovieApp-React/.venv/lib/python3.14/site-packages/requests/api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ahmad/repos/MovieApp-React/.venv/lib/python3.14/site-packages/requests/sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+  File "/home/ahmad/repos/MovieApp-React/.venv/lib/python3.14/site-packages/requests/sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+  File "/home/ahmad/repos/MovieApp-React/.venv/lib/python3.14/site-packages/requests/adapters.py", line 682, in send
+    raise ConnectionError(err, request=request)
+requests.exceptions.ConnectionError: ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+[03/Jun/2026 16:52:59] "GET / HTTP/1.1" 500 268238
+[03/Jun/2026 16:58:09] "GET / HTTP/1.1" 200 128763
+[03/Jun/2026 16:59:13] "GET /api/config/ HTTP/1.1" 200 1084
+[03/Jun/2026 16:59:14] "GET /api/config/ HTTP/1.1" 200 1084
+[03/Jun/2026 16:59:16] "GET /api/home/ HTTP/1.1" 200 105736
+[03/Jun/2026 16:59:22] "GET /api/home/ HTTP/1.1" 200 105736
+[03/Jun/2026 16:59:43] "GET /api/movies/1273221/ HTTP/1.1" 200 49595
+[03/Jun/2026 16:59:47] "GET /api/movies/1273221/ HTTP/1.1" 200 49595
+[03/Jun/2026 16:59:47] "GET /api/config/ HTTP/1.1" 200 1084
+[03/Jun/2026 16:59:48] "GET /api/config/ HTTP/1.1" 200 1084
+[03/Jun/2026 16:59:49] "GET /api/movies/1273221/ HTTP/1.1" 200 49595
+[03/Jun/2026 16:59:55] "GET /api/movies/1273221/ HTTP/1.1" 200 49595
+[03/Jun/2026 17:01:43] "GET /api/home/ HTTP/1.1" 200 105736
+[03/Jun/2026 17:01:48] "GET /api/home/ HTTP/1.1" 200 91770
+[03/Jun/2026 17:15:39] "GET /api/config/ HTTP/1.1" 200 1084
+[03/Jun/2026 17:15:40] "GET /api/config/ HTTP/1.1" 200 1084
+[03/Jun/2026 17:15:44] "GET /api/home/ HTTP/1.1" 200 105736
+[03/Jun/2026 17:15:50] "GET /api/home/ HTTP/1.1" 200 105736
+[03/Jun/2026 17:15:57] "GET /api/config/ HTTP/1.1" 200 1084
+[03/Jun/2026 17:15:57] "GET /api/config/ HTTP/1.1" 200 1084
+[03/Jun/2026 17:16:00] "GET /api/home/ HTTP/1.1" 200 105736
+[03/Jun/2026 17:16:04] "GET /api/home/ HTTP/1.1" 200 105736
+[03/Jun/2026 17:16:26] "GET /api/config/ HTTP/1.1" 200 1084
+[03/Jun/2026 17:16:26] "GET /api/config/ HTTP/1.1" 200 1084
+[03/Jun/2026 17:16:29] "GET /api/home/ HTTP/1.1" 200 105736
+[03/Jun/2026 17:16:33] "GET /api/home/ HTTP/1.1" 200 105736
+[03/Jun/2026 17:16:37] "GET /api/config/ HTTP/1.1" 200 1084
+[03/Jun/2026 17:16:37] "GET /api/config/ HTTP/1.1" 200 1084
+[03/Jun/2026 17:16:41] "GET /api/home/ HTTP/1.1" 200 105736
+[03/Jun/2026 17:16:45] "GET /api/home/ HTTP/1.1" 200 105736
+[03/Jun/2026 17:17:10] "GET /api/config/ HTTP/1.1" 200 1084
+[03/Jun/2026 17:17:10] "GET /api/config/ HTTP/1.1" 200 1084
+[03/Jun/2026 17:17:13] "GET /api/home/ HTTP/1.1" 200 105736
+[03/Jun/2026 17:17:17] "GET /api/home/ HTTP/1.1" 200 105736
+[03/Jun/2026 17:19:39] "GET /api/config/ HTTP/1.1" 200 1084
+[03/Jun/2026 17:19:40] "GET /api/config/ HTTP/1.1" 200 1084
+[03/Jun/2026 17:19:42] "GET /api/home/ HTTP/1.1" 200 105510
+[03/Jun/2026 17:19:47] "GET /api/home/ HTTP/1.1" 200 92355
+[03/Jun/2026 17:21:30] "GET /api/config/ HTTP/1.1" 200 1084
+[03/Jun/2026 17:21:30] "GET /api/config/ HTTP/1.1" 200 1084
+[03/Jun/2026 17:21:33] "GET /api/home/ HTTP/1.1" 200 105510
+[03/Jun/2026 17:21:37] "GET /api/home/ HTTP/1.1" 200 105510
+[03/Jun/2026 17:22:05] "GET /api/search/?query=baby&page=1 HTTP/1.1" 200 13110
+[03/Jun/2026 17:22:05] "GET /api/search/?query=baby&page=1 HTTP/1.1" 200 13110
+[03/Jun/2026 17:22:27] "GET /api/search/?query=boss+baby&page=1 HTTP/1.1" 200 6765
+[03/Jun/2026 17:22:32] "GET /api/movies/295693/ HTTP/1.1" 200 86631
+[03/Jun/2026 17:22:35] "GET /api/movies/295693/ HTTP/1.1" 200 86631
+[03/Jun/2026 17:22:45] "GET /api/genres/shows/ HTTP/1.1" 200 499
+[03/Jun/2026 17:22:45] "GET /api/genres/shows/ HTTP/1.1" 200 499
+[03/Jun/2026 17:22:46] "GET /api/shows/popular/?page=1 HTTP/1.1" 200 13715
+[03/Jun/2026 17:22:46] "GET /api/shows/popular/?page=1 HTTP/1.1" 200 13715
+[03/Jun/2026 17:22:48] "GET /api/genres/movies/ HTTP/1.1" 200 558
+[03/Jun/2026 17:22:48] "GET /api/genres/movies/ HTTP/1.1" 200 558
+[03/Jun/2026 17:22:49] "GET /api/movies/popular/?page=1 HTTP/1.1" 200 11980
+[03/Jun/2026 17:22:49] "GET /api/movies/popular/?page=1 HTTP/1.1" 200 11980
+[03/Jun/2026 17:22:57] "GET /api/search/?query=boss+baby&page=1 HTTP/1.1" 200 6765
+[03/Jun/2026 17:22:57] "GET /api/search/?query=boss+baby&page=1 HTTP/1.1" 200 6765
+[03/Jun/2026 17:23:01] "GET /api/movies/295693/ HTTP/1.1" 200 86631
+[03/Jun/2026 17:23:03] "GET /api/movies/295693/ HTTP/1.1" 200 86631
+[03/Jun/2026 17:23:15] "GET /api/genres/ HTTP/1.1" 200 1078
+[03/Jun/2026 17:23:15] "GET /api/genres/ HTTP/1.1" 200 1078
+[03/Jun/2026 17:23:24] "GET /api/home/ HTTP/1.1" 200 105510
+[03/Jun/2026 17:23:27] "GET /api/home/ HTTP/1.1" 200 105510
+[03/Jun/2026 17:27:13] "GET /api/movies/1304313/ HTTP/1.1" 200 43439
+[03/Jun/2026 17:27:15] "GET /api/movies/1304313/ HTTP/1.1" 200 43439
+[03/Jun/2026 17:31:03] "GET /api/home/ HTTP/1.1" 200 105510
+[03/Jun/2026 17:31:07] "GET /api/home/ HTTP/1.1" 200 105510
+[03/Jun/2026 17:31:19] "GET /api/shows/76479/season/1/episode/1/ HTTP/1.1" 200 7375
+[03/Jun/2026 17:31:19] "GET /api/shows/76479/season/1/ HTTP/1.1" 200 61902
+[03/Jun/2026 17:31:20] "GET /api/shows/76479/season/1/episode/1/ HTTP/1.1" 200 7375
+[03/Jun/2026 17:31:20] "GET /api/shows/76479/season/1/ HTTP/1.1" 200 61902
+[03/Jun/2026 17:31:26] "GET /api/shows/76479/?season=1&episode=1 HTTP/1.1" 200 48032
+[03/Jun/2026 17:31:33] "GET /api/shows/76479/?season=1&episode=1 HTTP/1.1" 200 48034
+[03/Jun/2026 17:34:28] "GET /api/home/ HTTP/1.1" 200 105510
+[03/Jun/2026 17:34:34] "GET /api/home/ HTTP/1.1" 200 105510
+[03/Jun/2026 17:34:50] "GET /api/movies/1083381/ HTTP/1.1" 200 45703
+[03/Jun/2026 17:34:53] "GET /api/movies/1083381/ HTTP/1.1" 200 45703
+[03/Jun/2026 17:34:58] "GET /api/config/ HTTP/1.1" 200 1084
+[03/Jun/2026 17:34:59] "GET /api/config/ HTTP/1.1" 200 1084
+[03/Jun/2026 17:35:01] "GET /api/movies/1083381/ HTTP/1.1" 200 45703
+[03/Jun/2026 17:35:04] "GET /api/movies/1083381/ HTTP/1.1" 200 45703
+[03/Jun/2026 17:35:26] "GET /api/search/?query=Avan+Jogia&page=1 HTTP/1.1" 200 2394
+[03/Jun/2026 17:35:26] "GET /api/search/?query=Avan+Jogia&page=1 HTTP/1.1" 200 2394
+[03/Jun/2026 17:35:51] "GET /api/home/ HTTP/1.1" 200 105510
+[03/Jun/2026 17:35:55] "GET /api/home/ HTTP/1.1" 200 105510
+[03/Jun/2026 17:36:48] "GET /api/movies/1083381/ HTTP/1.1" 200 45703
+[03/Jun/2026 17:36:50] "GET /api/movies/1083381/ HTTP/1.1" 200 45703
+[03/Jun/2026 17:37:31] "GET /api/genres/shows/ HTTP/1.1" 200 499
+[03/Jun/2026 17:37:31] "GET /api/genres/shows/ HTTP/1.1" 200 499
+[03/Jun/2026 17:37:32] "GET /api/shows/popular/?page=1 HTTP/1.1" 200 13715
+[03/Jun/2026 17:37:32] "GET /api/shows/popular/?page=1 HTTP/1.1" 200 13715
+[03/Jun/2026 17:37:36] "GET /api/shows/124364/season/1/ HTTP/1.1" 200 31754
+[03/Jun/2026 17:37:36] "GET /api/shows/124364/season/1/episode/1/ HTTP/1.1" 200 3896
+[03/Jun/2026 17:37:37] "GET /api/shows/124364/season/1/ HTTP/1.1" 200 31754
+[03/Jun/2026 17:37:37] "GET /api/shows/124364/season/1/episode/1/ HTTP/1.1" 200 3896
+[03/Jun/2026 17:37:42] "GET /api/shows/124364/?season=1&episode=1 HTTP/1.1" 200 33873
+[03/Jun/2026 17:37:47] "GET /api/shows/124364/?season=1&episode=1 HTTP/1.1" 200 33873
+[03/Jun/2026 17:39:23] "GET /api/home/ HTTP/1.1" 200 105510
+[03/Jun/2026 17:39:27] "GET /api/home/ HTTP/1.1" 200 105510
+[03/Jun/2026 17:39:36] "GET /api/home/ HTTP/1.1" 200 105510
+[03/Jun/2026 17:41:05] "GET /api/config/ HTTP/1.1" 200 1084
+[03/Jun/2026 17:41:06] "GET /api/config/ HTTP/1.1" 200 1084
+[03/Jun/2026 17:41:10] "GET /api/home/ HTTP/1.1" 200 105510
+[03/Jun/2026 17:41:15] "GET /api/home/ HTTP/1.1" 200 105510
+[03/Jun/2026 17:41:27] "GET /api/shows/59941/season/1/episode/1/ HTTP/1.1" 200 2191
+[03/Jun/2026 17:41:28] "GET /api/shows/59941/season/1/ HTTP/1.1" 200 228082
+[03/Jun/2026 17:41:28] "GET /api/shows/59941/season/1/episode/1/ HTTP/1.1" 200 2191
+[03/Jun/2026 17:41:28] "GET /api/shows/59941/season/1/ HTTP/1.1" 200 228082
+[03/Jun/2026 17:41:39] "GET /api/shows/59941/?season=1&episode=1 HTTP/1.1" 200 22814
+[03/Jun/2026 17:41:50] "GET /api/shows/59941/?season=1&episode=1 HTTP/1.1" 200 22814
+[03/Jun/2026 17:42:45] "GET /api/config/ HTTP/1.1" 200 1084
+[03/Jun/2026 17:42:46] "GET /api/shows/59941/season/1/episode/1/ HTTP/1.1" 200 2191
+[03/Jun/2026 17:42:46] "GET /api/shows/59941/season/1/ HTTP/1.1" 200 228082
+[03/Jun/2026 17:42:46] "GET /api/shows/59941/season/1/episode/1/ HTTP/1.1" 200 2191
+[03/Jun/2026 17:42:46] "GET /api/config/ HTTP/1.1" 200 1084
+[03/Jun/2026 17:42:46] "GET /api/shows/59941/season/1/ HTTP/1.1" 200 228082
+[03/Jun/2026 17:42:56] "GET /api/shows/59941/?season=1&episode=1 HTTP/1.1" 200 22814
+[03/Jun/2026 17:43:00] "GET /api/shows/59941/?season=1&episode=1 HTTP/1.1" 200 16456
+[03/Jun/2026 17:43:10] "GET /api/home/ HTTP/1.1" 200 105510
+[03/Jun/2026 17:43:14] "GET /api/home/ HTTP/1.1" 200 105510
+[03/Jun/2026 17:43:20] "GET /api/shows/85552/season/1/episode/1/ HTTP/1.1" 200 12654
+[03/Jun/2026 17:43:20] "GET /api/shows/85552/season/1/ HTTP/1.1" 200 112887
+[03/Jun/2026 17:43:20] "GET /api/shows/85552/season/1/episode/1/ HTTP/1.1" 200 12654
+[03/Jun/2026 17:43:21] "GET /api/shows/85552/season/1/ HTTP/1.1" 200 112887
+[03/Jun/2026 17:43:25] "GET /api/shows/85552/?season=1&episode=1 HTTP/1.1" 200 44525
+[03/Jun/2026 17:43:30] "GET /api/shows/85552/?season=1&episode=1 HTTP/1.1" 200 44525
+[03/Jun/2026 17:45:31] "GET /api/home/ HTTP/1.1" 200 105510
+[03/Jun/2026 17:45:36] "GET /api/home/ HTTP/1.1" 200 105510
+[03/Jun/2026 17:45:45] "GET /api/movies/936075/ HTTP/1.1" 200 73609
+[03/Jun/2026 17:45:47] "GET /api/movies/936075/ HTTP/1.1" 200 73609
+[03/Jun/2026 17:46:04] "GET /api/config/ HTTP/1.1" 200 1084
+[03/Jun/2026 17:46:05] "GET /api/config/ HTTP/1.1" 200 1084
+[03/Jun/2026 17:46:06] "GET /api/movies/936075/ HTTP/1.1" 200 73610
+[03/Jun/2026 17:46:08] "GET /api/movies/936075/ HTTP/1.1" 200 73609

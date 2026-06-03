@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 import Hero from '../components/Hero'
 import Section from '../components/Section'
 import MediaRail from '../components/MediaRail'
 import MediaCard from '../components/MediaCard'
-import Loading from '../components/Loading'
+import { HeroSkeleton, CardSkeleton } from '../components/Loading'
 import ErrorState from '../components/ErrorState'
 
 export default function HomePage() {
+  useDocumentTitle(null)
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -34,7 +35,19 @@ export default function HomePage() {
     }
   }, [])
 
-  if (loading) return <Loading label="Loading home..." />
+  if (loading) {
+    return (
+      <div className="page">
+        <HeroSkeleton />
+        <Section title="Trending movies">
+          <CardSkeleton count={8} />
+        </Section>
+        <Section title="Top rated shows">
+          <CardSkeleton count={8} />
+        </Section>
+      </div>
+    )
+  }
   if (error) return <ErrorState message={error} />
 
   const movieTrending = data?.movies?.trending_this_week?.results || []
@@ -50,54 +63,33 @@ export default function HomePage() {
   const heroItem = movieTrending[0] || showTrending[0]
   const heroKind = movieTrending[0] ? 'movie' : 'show'
 
+  const movieGenres = data?.genres?.movies || []
+  const showGenres = data?.genres?.shows || []
+
   return (
     <div className="page">
       <Hero item={heroItem} kind={heroKind} />
 
       <Section
         title="Trending movies"
-        subtitle="Fresh picks from this week"
-        action={<Link to="/movies?category=trending">View all</Link>}
+        subtitle="What everyone's watching this week"
+        action="/movies?category=trending"
       >
         <MediaRail>
           {movieTrending.map((item) => (
-            <MediaCard key={item.id} item={item} kind="movie" to={`/movies/${item.id}`} compact />
+            <MediaCard key={item.id} item={item} kind="movie" to={`/movies/${item.id}`} />
           ))}
         </MediaRail>
       </Section>
 
       <Section
         title="Popular movies"
-        subtitle="Crowd favorites"
-        action={<Link to="/movies?category=popular">View all</Link>}
+        subtitle="Crowd favorites right now"
+        action="/movies?category=popular"
       >
         <MediaRail>
           {moviePopular.map((item) => (
-            <MediaCard key={item.id} item={item} kind="movie" to={`/movies/${item.id}`} compact />
-          ))}
-        </MediaRail>
-      </Section>
-
-      <Section
-        title="Upcoming movies"
-        subtitle="Keep your watchlist ready"
-        action={<Link to="/movies?category=upcoming">View all</Link>}
-      >
-        <MediaRail>
-          {movieUpcoming.map((item) => (
-            <MediaCard key={item.id} item={item} kind="movie" to={`/movies/${item.id}`} compact />
-          ))}
-        </MediaRail>
-      </Section>
-
-      <Section
-        title="Top rated movies"
-        subtitle="Critics and fans agree"
-        action={<Link to="/movies?category=top-rated">View all</Link>}
-      >
-        <MediaRail>
-          {movieTopRated.map((item) => (
-            <MediaCard key={item.id} item={item} kind="movie" to={`/movies/${item.id}`} compact />
+            <MediaCard key={item.id} item={item} kind="movie" to={`/movies/${item.id}`} />
           ))}
         </MediaRail>
       </Section>
@@ -105,23 +97,47 @@ export default function HomePage() {
       <Section
         title="Trending shows"
         subtitle="Binge-worthy series"
-        action={<Link to="/shows?category=trending">View all</Link>}
+        action="/shows?category=trending"
       >
         <MediaRail>
           {showTrending.map((item) => (
-            <MediaCard key={item.id} item={item} kind="show" to={`/shows/${item.id}`} compact />
+            <MediaCard key={item.id} item={item} kind="show" to={`/shows/${item.id}`} />
+          ))}
+        </MediaRail>
+      </Section>
+
+      <Section
+        title="Upcoming movies"
+        subtitle="Coming soon to theaters"
+        action="/movies?category=upcoming"
+      >
+        <MediaRail>
+          {movieUpcoming.map((item) => (
+            <MediaCard key={item.id} item={item} kind="movie" to={`/movies/${item.id}`} />
           ))}
         </MediaRail>
       </Section>
 
       <Section
         title="Airing today"
-        subtitle="Fresh episodes"
-        action={<Link to="/shows?category=airing-today">View all</Link>}
+        subtitle="Fresh episodes dropping today"
+        action="/shows?category=airing-today"
       >
         <MediaRail>
           {showAiring.map((item) => (
-            <MediaCard key={item.id} item={item} kind="show" to={`/shows/${item.id}`} compact />
+            <MediaCard key={item.id} item={item} kind="show" to={`/shows/${item.id}`} />
+          ))}
+        </MediaRail>
+      </Section>
+
+      <Section
+        title="Top rated movies"
+        subtitle="Critics and fans agree"
+        action="/movies?category=top-rated"
+      >
+        <MediaRail>
+          {movieTopRated.map((item) => (
+            <MediaCard key={item.id} item={item} kind="movie" to={`/movies/${item.id}`} />
           ))}
         </MediaRail>
       </Section>
@@ -129,11 +145,11 @@ export default function HomePage() {
       <Section
         title="On the air"
         subtitle="Currently running series"
-        action={<Link to="/shows?category=on-the-air">View all</Link>}
+        action="/shows?category=on-the-air"
       >
         <MediaRail>
           {showOnAir.map((item) => (
-            <MediaCard key={item.id} item={item} kind="show" to={`/shows/${item.id}`} compact />
+            <MediaCard key={item.id} item={item} kind="show" to={`/shows/${item.id}`} />
           ))}
         </MediaRail>
       </Section>
@@ -141,26 +157,25 @@ export default function HomePage() {
       <Section
         title="Top rated shows"
         subtitle="Beloved by audiences"
-        action={<Link to="/shows?category=top-rated">View all</Link>}
+        action="/shows?category=top-rated"
       >
         <MediaRail>
           {showTopRated.map((item) => (
-            <MediaCard key={item.id} item={item} kind="show" to={`/shows/${item.id}`} compact />
+            <MediaCard key={item.id} item={item} kind="show" to={`/shows/${item.id}`} />
           ))}
         </MediaRail>
       </Section>
 
-      <Section title="Explore by genre" subtitle="Pick a mood and dive in">
+      <Section title="Browse by genre" subtitle="Pick a mood and dive in">
         <div className="genre-grid">
-          {data?.genres?.movies?.map((genre) => (
-            <Link key={genre.id} to={`/movies?genre=${genre.id}`} className="genre-chip">
-              {genre.name}
-            </Link>
-          ))}
-          {data?.genres?.shows?.map((genre) => (
-            <Link key={`show-${genre.id}`} to={`/shows?genre=${genre.id}`} className="genre-chip">
-              {genre.name}
-            </Link>
+          {[...movieGenres.slice(0, 8), ...showGenres.slice(0, 8)].map((genre) => (
+            <a
+              key={genre.id}
+              className="genre-card"
+              href={`/movies?genre=${genre.id}`}
+            >
+              <span>{genre.name}</span>
+            </a>
           ))}
         </div>
       </Section>

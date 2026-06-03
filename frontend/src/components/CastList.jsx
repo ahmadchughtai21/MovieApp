@@ -7,21 +7,27 @@ export default function CastList({ cast = [] }) {
   if (!cast.length) return null
 
   return (
-    <div className="cast-list">
+    <div className="cast-grid">
       {cast.map((member) => {
         const image = buildImageUrl(config, member.profile_path, 'profile')
-        const name = member.name
+        const name = member.name || 'Unknown'
+        const role = member.character || member.job || 'Cast'
+        const key = member.cast_id || member.credit_id || member.id
         return (
           <Link
-            key={`${member.cast_id || member.credit_id}-${member.id}`}
+            key={`${key}-${member.id}`}
             className="cast-card"
             to={`/search?q=${encodeURIComponent(name)}`}
           >
-            {image ? <img src={image} alt={name} loading="lazy" /> : <div className="cast-fallback">No photo</div>}
-            <div className="cast-meta">
-              <div className="cast-name">{name}</div>
-              <div className="cast-role">{member.character || member.job || 'Cast'}</div>
+            <div className="cast-photo">
+              {image ? (
+                <img src={image} alt={name} loading="lazy" />
+              ) : (
+                <div className="cast-fallback">No photo</div>
+              )}
             </div>
+            <div className="cast-name">{name}</div>
+            <div className="cast-role">{role}</div>
           </Link>
         )
       })}

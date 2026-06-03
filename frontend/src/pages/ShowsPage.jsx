@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 import Section from '../components/Section'
 import MediaCard from '../components/MediaCard'
 import Pager from '../components/Pager'
-import Loading from '../components/Loading'
+import { GridSkeleton } from '../components/Loading'
 import ErrorState from '../components/ErrorState'
 
 const categories = [
@@ -38,34 +39,20 @@ export default function ShowsPage() {
     setError('')
 
     const fetcher = async () => {
-      if (query) {
-        return api.showsSearch(query, page)
-      }
-      if (genre) {
-        return api.showsByGenre(genre, page)
-      }
-      if (category === 'trending') {
-        return api.showsTrending(timeWindow)
-      }
-      if (category === 'top-rated') {
-        return api.showsTopRated(page)
-      }
-      if (category === 'airing-today') {
-        return api.showsAiringToday(page)
-      }
-      if (category === 'on-the-air') {
-        return api.showsOnTheAir(page)
-      }
+      if (query) return api.showsSearch(query, page)
+      if (genre) return api.showsByGenre(genre, page)
+      if (category === 'trending') return api.showsTrending(timeWindow)
+      if (category === 'top-rated') return api.showsTopRated(page)
+      if (category === 'airing-today') return api.showsAiringToday(page)
+      if (category === 'on-the-air') return api.showsOnTheAir(page)
       return api.showsPopular(page)
     }
 
     fetcher()
       .then((payload) => {
-        console.log('Shows fetched:', payload)
         if (active) setData(payload)
       })
       .catch((err) => {
-        console.error('Shows fetch error:', err)
         if (active) setError(err.message)
       })
       .finally(() => {
@@ -81,23 +68,22 @@ export default function ShowsPage() {
   const totalPages = Math.min(data?.total_pages || 1, 500)
 
   const categoryLabel = useMemo(() => {
-    if (query) return `Search results for \"${query}\"`
+    if (query) return `Search: ${query}`
     if (genre) {
       const found = genres.find((item) => String(item.id) === String(genre))
       return found ? `${found.name} shows` : 'Genre picks'
     }
     const found = categories.find((item) => item.key === category)
-    return found ? `${found.label} shows` : 'Shows'
+    return found ? `${found.label} shows` : 'TV Shows'
   }, [category, genres, query, genre])
+
+  useDocumentTitle(categoryLabel)
 
   function setParam(next) {
     const params = new URLSearchParams(searchParams)
     Object.entries(next).forEach(([key, value]) => {
-      if (value === '' || value === null) {
-        params.delete(key)
-      } else {
-        params.set(key, value)
-      }
+      if (value === '' || value === null) params.delete(key)
+      else params.set(key, value)
     })
     params.delete('page')
     setSearchParams(params)
@@ -107,19 +93,18 @@ export default function ShowsPage() {
     const params = new URLSearchParams(searchParams)
     params.set('page', String(nextPage))
     setSearchParams(params)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  if (loading) return <Loading label="Loading shows..." />
   if (error) return <ErrorState message={error} />
 
   return (
     <div className="page">
       <div className="page-head">
         <div>
-          <h1>Shows</h1>
+          <h1>TV Shows</h1>
           <p className="page-sub">Find every series, from premieres to classics.</p>
         </div>
-        <Link to="/movies" className="ghost-link">Browse movies</Link>
       </div>
 
       <div className="filter-bar">
@@ -134,55 +119,68 @@ export default function ShowsPage() {
             </button>
           ))}
         </div>
-        <div className="filter-group">
-          <select
-            className="select"
-            value={genre}
-            onChange={(event) => setParam({ genre: event.target.value, q: '' })}
+        <div className="filter-row">
+          <div className="filter-group">
+            <select
+              className="select"
+              value={genre}
+              onChange={(event) => setParam({ genre: event.target.value, q: '' })}
+            >
+              <option value="">All genres</option>
+              {genres.map((item) => (
+                <option key={item.id} value={item.id}>{item.name}</option>
+              ))}
+            </select>
+            {category === 'trending' ? (
+              <div className="filter-group">
+                <button
+                  className={`chip${timeWindow === 'day' ? ' active' : ''}`}
+                  onClick={() => setParam({ time: 'day' })}
+                >
+                  Today
+                </button>
+                <button
+                  className={`chip${timeWindow === 'week' ? ' active' : ''}`}
+                  onClick={() => setParam({ time: 'week' })}
+                >
+                  This week
+                </button>
+              </div>
+            ) : null}
+          </div>
+          <form
+            className="inline-search"
+            onSubmit={(event) => {
+              event.preventDefault()
+              const form = new FormData(event.currentTarget)
+              const value = String(form.get('show-query') || '')
+              setParam({ q: value, genre: '' })
+            }}
           >
-            <option value="">All genres</option>
-            {genres.map((item) => (
-              <option key={item.id} value={item.id}>{item.name}</option>
-            ))}
-          </select>
-          {category === 'trending' ? (
-            <div className="toggle">
-              <button
-                className={`chip${timeWindow === 'day' ? ' active' : ''}`}
-                onClick={() => setParam({ time: 'day' })}
-              >
-                Today
-              </button>
-              <button
-                className={`chip${timeWindow === 'week' ? ' active' : ''}`}
-                onClick={() => setParam({ time: 'week' })}
-              >
-                This week
-              </button>
-            </div>
-          ) : null}
+            <input name="show-query" placeholder="Search shows…" defaultValue={query} />
+            <button type="submit">Go</button>
+          </form>
         </div>
-        <form
-          className="inline-search"
-          onSubmit={(event) => {
-            event.preventDefault()
-            const form = new FormData(event.currentTarget)
-            const value = String(form.get('show-query') || '')
-            setParam({ q: value })
-          }}
-        >
-          <input name="show-query" placeholder="Search shows" defaultValue={query} />
-          <button type="submit">Go</button>
-        </form>
       </div>
 
-      <Section title={categoryLabel} subtitle="Curated from TMDB via MadFlix API">
-        <div className="grid">
-          {results.map((item) => (
-            <MediaCard key={item.id} item={item} kind="show" to={`/shows/${item.id}`} />
-          ))}
-        </div>
-        <Pager page={page} totalPages={totalPages} onPage={setPage} />
+      <Section title={categoryLabel} subtitle={loading ? 'Loading…' : `${results.length} titles`}>
+        {loading ? (
+          <GridSkeleton count={12} />
+        ) : results.length === 0 ? (
+          <div className="state">
+            <div className="state-title">No shows found</div>
+            <p>Try a different category, genre, or search term.</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid">
+              {results.map((item) => (
+                <MediaCard key={item.id} item={item} kind="show" to={`/shows/${item.id}`} />
+              ))}
+            </div>
+            <Pager page={page} totalPages={totalPages} onPage={setPage} />
+          </>
+        )}
       </Section>
     </div>
   )
