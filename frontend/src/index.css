@@ -1032,6 +1032,30 @@ p { margin: 0; }
   font-size: 0.875rem;
 }
 
+@media (hover: none) {
+  .player-fs-btn {
+    opacity: 1;
+    padding: 10px 16px;
+    font-size: 0.825rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .player-fs-btn {
+    opacity: 1;
+    top: 10px;
+    right: 10px;
+    padding: 11px 16px;
+    font-size: 0.825rem;
+  }
+
+  .player:fullscreen .player-fs-btn {
+    top: 16px;
+    right: 16px;
+    padding: 12px 18px;
+  }
+}
+
 .player:-webkit-full-screen {
   width: 100vw;
   height: 100vh;
