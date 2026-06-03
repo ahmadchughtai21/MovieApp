@@ -80,19 +80,19 @@ export default function Player({ src, title }) {
         />
         <button
           type="button"
-          className={`player-fs-btn${showOverlay || isFullscreen ? ' visible' : ''}`}
+          className={`player-fs-btn${showOverlay || isFullscreen ? ' visible' : ''}${isFullscreen ? ' player-fs-btn--exit' : ''}`}
           onClick={toggleFullscreen}
           aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
         >
           {isFullscreen ? (
             <>
               <Icon name="x" size={16} />
-              <span>Exit</span>
+              <span className="player-fs-btn-label">Exit</span>
             </>
           ) : (
             <>
               <FullscreenIcon size={16} />
-              <span>Fullscreen</span>
+              <span className="player-fs-btn-label">Fullscreen</span>
             </>
           )}
         </button>
