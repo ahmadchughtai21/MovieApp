@@ -15,6 +15,7 @@ import Loading from '../components/Loading'
 import ErrorState from '../components/ErrorState'
 import Player from '../components/Player'
 import WhereToWatch from '../components/WhereToWatch'
+import { buildStreamSources } from '../lib/streamSources'
 
 export default function MovieDetailsPage() {
   const { id } = useParams()
@@ -47,6 +48,11 @@ export default function MovieDetailsPage() {
     { label: 'Status', value: details?.status || 'Unknown' }
   ]), [details])
 
+  const streamSources = useMemo(
+    () => buildStreamSources({ id: details?.id }),
+    [details?.id]
+  )
+
   if (state.loading) return <Loading label="Loading movie" />
   if (state.error) return <ErrorState message={state.error} />
   if (!details) return <ErrorState message="No movie data available" />
@@ -54,7 +60,6 @@ export default function MovieDetailsPage() {
   const credits = state.data?.credits
   const videos = state.data?.videos?.results || []
   const similar = state.data?.similar_movies?.results || []
-  const streamUrl = `https://vidsrc-embed.ru/embed/movie/${details.id}`
 
   const backdrop = buildImageUrl(config, details.backdrop_path, 'backdrop')
   const poster = buildImageUrl(config, details.poster_path, 'poster')
@@ -122,8 +127,8 @@ export default function MovieDetailsPage() {
         </div>
       </section>
 
-      <Section title="Stream" subtitle="Click fullscreen to watch distraction-free">
-        <Player src={streamUrl} title={`Stream ${details.title}`} />
+      <Section title="Stream" subtitle="Pick a server and tap fullscreen to watch distraction-free">
+        <Player key={details.id} sources={streamSources} title={`Stream ${details.title}`} />
       </Section>
 
       <Section title="Overview" subtitle="Key facts at a glance">

@@ -15,6 +15,7 @@ import Loading from '../components/Loading'
 import ErrorState from '../components/ErrorState'
 import Player from '../components/Player'
 import WhereToWatch from '../components/WhereToWatch'
+import { buildStreamSources } from '../lib/streamSources'
 
 export default function ShowDetailsPage() {
   const { id } = useParams()
@@ -66,6 +67,11 @@ export default function ShowDetailsPage() {
     { label: 'Seasons', value: details?.number_of_seasons || 'Unknown' }
   ]), [details])
 
+  const streamSources = useMemo(
+    () => buildStreamSources({ id: details?.id, season, episode }),
+    [details?.id, season, episode]
+  )
+
   if (state.loading) return <Loading label="Loading show" />
   if (state.error) return <ErrorState message={state.error} />
   if (!details) return <ErrorState message="No show data available" />
@@ -73,7 +79,6 @@ export default function ShowDetailsPage() {
   const credits = state.data?.credits
   const videos = state.data?.videos?.results || []
   const similar = state.data?.similar_shows?.results || []
-  const streamUrl = `https://vidsrc-embed.ru/embed/tv?tmdb=${details.id}&season=${season}&episode=${episode}`
   const seasons = state.data?.seasons_data || []
   const nav = state.data?.navigation_info
 
@@ -153,8 +158,8 @@ export default function ShowDetailsPage() {
         </div>
       </section>
 
-      <Section title="Stream" subtitle="Click fullscreen to watch distraction-free">
-        <Player src={streamUrl} title={`Stream ${details.name}`} />
+      <Section title="Stream" subtitle="Pick a server and tap fullscreen to watch distraction-free">
+        <Player key={`${details.id}-${season}-${episode}`} sources={streamSources} title={`Stream ${details.name}`} />
       </Section>
 
       <Section title="Season and episode" subtitle="Navigate the series">
