@@ -103,6 +103,13 @@ const PATHS = {
       <path d="M6 6l12 12" />
       <path d="M18 6 6 18" />
     </>
+  ),
+  external: (
+    <>
+      <path d="M15 3h6v6" />
+      <path d="M10 14 21 3" />
+      <path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" />
+    </>
   )
 }
 

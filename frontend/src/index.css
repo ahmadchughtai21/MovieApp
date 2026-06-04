@@ -950,6 +950,125 @@ p { margin: 0; }
   margin-top: 4px;
 }
 
+/* ============== WHERE TO WATCH ============== */
+.where-to-watch {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  margin-top: 8px;
+}
+
+.where-to-watch-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.where-to-watch-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.where-to-watch-label {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.where-to-watch-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.provider-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 6px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 0.825rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s var(--ease);
+  white-space: nowrap;
+}
+
+.provider-btn:hover {
+  background: var(--bg-overlay);
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.provider-logo {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  object-fit: contain;
+  background: #fff;
+  padding: 2px;
+  flex-shrink: 0;
+}
+
+.provider-logo-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #000;
+  font-weight: 700;
+  font-size: 0.7rem;
+}
+
+.provider-name {
+  line-height: 1;
+}
+
+.provider-ext {
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.provider-btn:hover .provider-ext {
+  color: var(--text);
+}
+
+@media (max-width: 720px) {
+  .where-to-watch {
+    padding: 14px;
+  }
+
+  .where-to-watch-list {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin: 0 -14px;
+    padding: 0 14px;
+    scroll-snap-type: x proximity;
+  }
+
+  .where-to-watch-list::-webkit-scrollbar { display: none; }
+
+  .provider-btn {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+  }
+}
+
 /* ============== PLAYER ============== */
 .player {
   background: var(--bg-surface);

@@ -24,6 +24,7 @@ urlpatterns = [
     # Movie search and details
     path('movies/search/', api_views.api_movie_search, name='api-movie-search'),
     path('movies/<int:movie_id>/', api_views.api_movie_details, name='api-movie-details'),
+    path('movies/<int:movie_id>/watch-providers/', api_views.api_movie_watch_providers, name='api-movie-watch-providers'),
     path('movies/genre/', api_views.api_movies_by_genre, name='api-movies-by-genre'),
 
     # =============================================================================
@@ -40,6 +41,7 @@ urlpatterns = [
     # TV show search and details
     path('shows/search/', api_views.api_show_search, name='api-show-search'),
     path('shows/<int:show_id>/', api_views.api_show_details, name='api-show-details'),
+    path('shows/<int:show_id>/watch-providers/', api_views.api_show_watch_providers, name='api-show-watch-providers'),
     path('shows/genre/', api_views.api_shows_by_genre, name='api-shows-by-genre'),
 
     # Season and episode details

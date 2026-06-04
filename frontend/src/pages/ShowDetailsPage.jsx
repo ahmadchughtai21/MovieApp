@@ -14,6 +14,7 @@ import Icon from '../components/Icon'
 import Loading from '../components/Loading'
 import ErrorState from '../components/ErrorState'
 import Player from '../components/Player'
+import WhereToWatch from '../components/WhereToWatch'
 
 export default function ShowDetailsPage() {
   const { id } = useParams()
@@ -146,6 +147,8 @@ export default function ShowDetailsPage() {
                 ))}
               </div>
             ) : null}
+
+            <WhereToWatch kind="show" id={details.id} title={details.name} />
           </div>
         </div>
       </section>

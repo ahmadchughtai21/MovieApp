@@ -40,6 +40,8 @@ export const api = {
   moviesNowPlaying: (page = 1) => fetchJson('/movies/now-playing/', { page }),
   moviesSearch: (query, page = 1) => fetchJson('/movies/search/', { query, page }),
   movieDetails: (movieId) => fetchJson(`/movies/${movieId}/`),
+  movieWatchProviders: (movieId, { title, region = 'US' } = {}) =>
+    fetchJson(`/movies/${movieId}/watch-providers/`, { title, region }),
   moviesByGenre: (genreId, page = 1) => fetchJson('/movies/genre/', { genre_id: genreId, page }),
 
   showsData: () => fetchJson('/shows/'),
@@ -50,6 +52,8 @@ export const api = {
   showsOnTheAir: (page = 1) => fetchJson('/shows/on-the-air/', { page }),
   showsSearch: (query, page = 1) => fetchJson('/shows/search/', { query, page }),
   showDetails: (showId, season = 1, episode = 1) => fetchJson(`/shows/${showId}/`, { season, episode }),
+  showWatchProviders: (showId, { title, region = 'US' } = {}) =>
+    fetchJson(`/shows/${showId}/watch-providers/`, { title, region }),
   showsByGenre: (genreId, page = 1) => fetchJson('/shows/genre/', { genre_id: genreId, page }),
   seasonDetails: (showId, seasonNumber) => fetchJson(`/shows/${showId}/season/${seasonNumber}/`),
   episodeDetails: (showId, seasonNumber, episodeNumber) =>

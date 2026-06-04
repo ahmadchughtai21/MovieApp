@@ -614,6 +614,111 @@ def api_all_genres(request):
         )
 
 # =============================================================================
+# WATCH PROVIDERS ENDPOINTS
+# =============================================================================
+
+# Map of TMDB provider IDs to display info and search URL templates.
+# Search URLs are used because TMDB does not provide provider-specific content IDs
+# that would let us deep-link into the exact title on each service.
+WATCH_PROVIDERS = {
+    8:    {"name": "Netflix",         "search_url": "https://www.netflix.com/search?q={q}"},
+    119:  {"name": "Amazon Prime",    "search_url": "https://www.amazon.com/s?k={q}&i=instant-video"},
+    337:  {"name": "Disney+",         "search_url": "https://www.disneyplus.com/search?q={q}"},
+    350:  {"name": "Apple TV+",       "search_url": "https://tv.apple.com/search?term={q}"},
+    384:  {"name": "Max",             "search_url": "https://play.max.com/search?q={q}"},
+    15:   {"name": "Hulu",            "search_url": "https://www.hulu.com/search?q={q}"},
+    531:  {"name": "Paramount+",      "search_url": "https://www.paramountplus.com/search?q={q}"},
+    386:  {"name": "Peacock",         "search_url": "https://www.peacocktv.com/search?q={q}"},
+    2:    {"name": "Apple TV",        "search_url": "https://tv.apple.com/search?term={q}"},
+    3:    {"name": "Google Play",     "search_url": "https://play.google.com/store/search?q={q}&c=movies"},
+    10:   {"name": "Amazon Video",    "search_url": "https://www.amazon.com/s?k={q}&i=instant-video"},
+    192:  {"name": "YouTube",         "search_url": "https://www.youtube.com/results?search_query={q}+full+movie"},
+}
+
+
+def _build_providers_payload(providers_data, title, region):
+    """
+    Build the response payload for a watch providers request.
+
+    Returns up to three categories: stream (subscription), rent, buy.
+    Each item contains the provider's logo, name, and a search URL.
+    """
+    region_data = (providers_data.get("results") or {}).get(region) or {}
+    categories = {"stream": [], "rent": [], "buy": []}
+
+    seen_ids = set()
+    for category_key, tmdb_key in (("stream", "flatrate"), ("rent", "rent"), ("buy", "buy")):
+        for provider in region_data.get(tmdb_key, []):
+            pid = provider.get("provider_id")
+            if pid in seen_ids:
+                continue
+            seen_ids.add(pid)
+
+            if pid not in WATCH_PROVIDERS:
+                continue
+            info = WATCH_PROVIDERS[pid]
+
+            logo_path = provider.get("logo_path")
+            categories[category_key].append({
+                "provider_id": pid,
+                "name": info["name"],
+                "logo_path": f"https://image.tmdb.org/t/p/w92{logo_path}" if logo_path else None,
+                "url": info["search_url"].format(q=requests.utils.quote(title)),
+            })
+
+    has_any = any(categories.values())
+    return {
+        "providers": categories,
+        "has_any": has_any,
+        "region": region,
+    }
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def api_movie_watch_providers(request, movie_id):
+    """Get streaming/rent/buy providers for a movie"""
+    try:
+        region = request.GET.get('region', 'US').upper()
+        title = request.GET.get('title', '')
+
+        if not title:
+            details = make_tmdb_request(f'/movie/{movie_id}')
+            title = details.get('title') or details.get('original_title') or ''
+
+        providers_data = make_tmdb_request(f'/movie/{movie_id}/watch/providers')
+        payload = _build_providers_payload(providers_data, title, region)
+        return Response(payload, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response(
+            {"error": "Failed to fetch watch providers", "details": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def api_show_watch_providers(request, show_id):
+    """Get streaming/rent/buy providers for a TV show"""
+    try:
+        region = request.GET.get('region', 'US').upper()
+        title = request.GET.get('title', '')
+
+        if not title:
+            details = make_tmdb_request(f'/tv/{show_id}')
+            title = details.get('name') or details.get('original_name') or ''
+
+        providers_data = make_tmdb_request(f'/tv/{show_id}/watch/providers')
+        payload = _build_providers_payload(providers_data, title, region)
+        return Response(payload, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response(
+            {"error": "Failed to fetch watch providers", "details": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+# =============================================================================
 # SEASON AND EPISODE ENDPOINTS
 # =============================================================================
 
