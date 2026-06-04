@@ -1073,62 +1073,19 @@ p { margin: 0; }
 
 @media (max-width: 720px) {
   .where-to-watch {
-    padding: 14px;
-    text-align: left;
-  }
-
-  .where-to-watch-list {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-    margin: 0 -14px;
-    padding: 2px 14px;
-    scroll-snap-type: x proximity;
-    scroll-padding-left: 14px;
-  }
-
-  .where-to-watch-list::-webkit-scrollbar { display: none; }
-
-  .provider-btn {
-    scroll-snap-align: start;
-    min-height: 44px;
-    padding: 8px 14px 8px 8px;
+    display: none;
   }
 }
 
 @media (max-width: 480px) {
   .where-to-watch {
-    padding: 12px;
-  }
-
-  .where-to-watch-list {
-    margin: 0 -12px;
-    padding: 2px 12px;
-    scroll-padding-left: 12px;
-  }
-
-  .provider-btn {
-    font-size: 0.8rem;
-    padding: 6px 12px 6px 6px;
-    min-height: 40px;
-  }
-
-  .provider-logo {
-    width: 22px;
-    height: 22px;
-  }
-
-  .provider-ext {
     display: none;
   }
 }
 
 @media (max-width: 360px) {
-  .provider-btn {
-    font-size: 0.75rem;
-    gap: 6px;
+  .where-to-watch {
+    display: none;
   }
 }
 
