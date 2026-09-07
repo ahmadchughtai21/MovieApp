@@ -15,6 +15,8 @@ import Loading from '../components/Loading'
 import ErrorState from '../components/ErrorState'
 import Player from '../components/Player'
 import WhereToWatch from '../components/WhereToWatch'
+import WatchlistButton from '../components/WatchlistButton'
+import MarkAsWatched from '../components/MarkAsWatched'
 import { buildStreamSources } from '../lib/streamSources'
 
 export default function ShowDetailsPage() {
@@ -153,13 +155,18 @@ export default function ShowDetailsPage() {
               </div>
             ) : null}
 
+            <div className="details-actions">
+              <WatchlistButton tmdbId={details.id} mediaType="tv" title={details.name} posterPath={details.poster_path} />
+              <MarkAsWatched tmdbId={details.id} mediaType="tv" title={details.name} posterPath={details.poster_path} season={season} episode={episode} />
+            </div>
+
             <WhereToWatch kind="show" id={details.id} title={details.name} />
           </div>
         </div>
       </section>
 
       <Section title="Stream" subtitle="Pick a server and tap fullscreen to watch distraction-free">
-        <Player key={`${details.id}-${season}-${episode}`} sources={streamSources} title={`Stream ${details.name}`} />
+        <Player key={`${details.id}-${season}-${episode}`} sources={streamSources} title={`Stream ${details.name}`} tmdbId={details.id} mediaType="tv" season={season} episode={episode} />
       </Section>
 
       <Section title="Season and episode" subtitle="Navigate the series">

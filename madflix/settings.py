@@ -42,6 +42,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # "django_browser_reload.middleware.BrowserReloadMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    "madflixapp.middleware.IPBanMiddleware",
 ]
 
 

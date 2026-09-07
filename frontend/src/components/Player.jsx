@@ -1,18 +1,57 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { useAuth } from '../contexts/AuthContext'
+import { api } from '../lib/api'
 import Icon from './Icon'
 
-export default function Player({ src, sources, title }) {
+export default function Player({ src, sources, title, tmdbId, mediaType, season, episode }) {
+  const { user } = useAuth()
   const wrapperRef = useRef(null)
   const iframeRef = useRef(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showOverlay, setShowOverlay] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
+  const mountedAt = useRef(Date.now())
+  const sessionIdRef = useRef(null)
 
   const sourceList = sources && sources.length > 0
     ? sources
     : (src ? [{ id: 'default', name: 'Stream', url: src }] : [])
 
   const currentSource = sourceList[activeIndex] || sourceList[0]
+
+  useEffect(() => {
+    if (!user || !tmdbId) return
+    api.sessionCreate({
+      tmdb_id: tmdbId,
+      media_type: mediaType || 'movie',
+      title: title || '',
+      season: season || null,
+      episode: episode || null,
+    }).then((s) => {
+      sessionIdRef.current = s.id
+    }).catch(() => {})
+  }, [user, tmdbId, mediaType, title, season, episode])
+
+  useEffect(() => {
+    return () => {
+      if (!user || !tmdbId) return
+      const elapsed = (Date.now() - mountedAt.current) / 1000
+      if (elapsed > 30) {
+        api.markAsWatched({
+          tmdb_id: tmdbId,
+          media_type: mediaType || 'movie',
+          title: title || '',
+          poster_path: '',
+          season: season || null,
+          episode: episode || null,
+          completed: false,
+        }).catch(() => {})
+      }
+      if (sessionIdRef.current) {
+        api.sessionUpdate(sessionIdRef.current, { active: false }).catch(() => {})
+      }
+    }
+  }, [user, tmdbId, mediaType, title, season, episode])
 
   const handleFullscreenChange = useCallback(() => {
     setIsFullscreen(Boolean(document.fullscreenElement))

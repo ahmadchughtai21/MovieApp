@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate, Link } from 'react-router-dom'
 import { useMemo } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 import SearchBar from './SearchBar'
 import Icon from './Icon'
 
@@ -15,6 +16,7 @@ export default function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
+  const { user, logout } = useAuth()
 
   const query = useMemo(() => {
     const params = new URLSearchParams(location.search)
@@ -65,6 +67,33 @@ export default function Layout() {
           <div className="search-wrap search-desktop">
             <SearchBar initialValue={query} onSubmit={handleSearch} />
           </div>
+
+          {user ? (
+            <div className="user-menu-desktop">
+              {user.is_admin && (
+                <Link to="/admin" className="nav-link" title="Admin Dashboard">
+                  <Icon name="grid" size={18} />
+                </Link>
+              )}
+              <Link to="/watchlist" className="nav-link" title="My Watchlist">
+                <Icon name="heart" size={18} />
+              </Link>
+              <Link to="/history" className="nav-link" title="Watch History">
+                <Icon name="clock" size={18} />
+              </Link>
+              <div className="user-avatar-wrap" title={user.display_name || user.username}>
+                <div className="user-avatar">
+                  {(user.display_name || user.username || 'U')[0].toUpperCase()}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="auth-buttons-desktop">
+              <Link to="/login" className="btn btn-ghost" style={{ padding: '7px 14px', fontSize: '0.8rem' }}>Sign In</Link>
+              <Link to="/register" className="btn btn-accent" style={{ padding: '7px 14px', fontSize: '0.8rem' }}>Sign Up</Link>
+            </div>
+          )}
+
           <button
             type="button"
             className="menu-toggle"
@@ -94,6 +123,23 @@ export default function Layout() {
                 {item.label}
               </NavLink>
             ))}
+            {user ? (
+              <>
+                <NavLink to="/watchlist" className="nav-link" onClick={() => setMenuOpen(false)}>My Watchlist</NavLink>
+                <NavLink to="/history" className="nav-link" onClick={() => setMenuOpen(false)}>Watch History</NavLink>
+                {user.is_admin && (
+                  <NavLink to="/admin" className="nav-link" onClick={() => setMenuOpen(false)}>Admin</NavLink>
+                )}
+                <button className="nav-link" style={{ width: '100%', textAlign: 'left' }} onClick={() => { logout(); setMenuOpen(false) }}>
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <>
+                <NavLink to="/login" className="nav-link" onClick={() => setMenuOpen(false)}>Sign In</NavLink>
+                <NavLink to="/register" className="nav-link" onClick={() => setMenuOpen(false)}>Sign Up</NavLink>
+              </>
+            )}
           </nav>
         </div>
       </div>

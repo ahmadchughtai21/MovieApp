@@ -15,6 +15,8 @@ import Loading from '../components/Loading'
 import ErrorState from '../components/ErrorState'
 import Player from '../components/Player'
 import WhereToWatch from '../components/WhereToWatch'
+import WatchlistButton from '../components/WatchlistButton'
+import MarkAsWatched from '../components/MarkAsWatched'
 import { buildStreamSources } from '../lib/streamSources'
 
 export default function MovieDetailsPage() {
@@ -122,13 +124,18 @@ export default function MovieDetailsPage() {
               </div>
             ) : null}
 
+            <div className="details-actions">
+              <WatchlistButton tmdbId={details.id} mediaType="movie" title={details.title} posterPath={details.poster_path} />
+              <MarkAsWatched tmdbId={details.id} mediaType="movie" title={details.title} posterPath={details.poster_path} />
+            </div>
+
             <WhereToWatch kind="movie" id={details.id} title={details.title} />
           </div>
         </div>
       </section>
 
       <Section title="Stream" subtitle="Pick a server and tap fullscreen to watch distraction-free">
-        <Player key={details.id} sources={streamSources} title={`Stream ${details.title}`} />
+        <Player key={details.id} sources={streamSources} title={`Stream ${details.title}`} tmdbId={details.id} mediaType="movie" />
       </Section>
 
       <Section title="Overview" subtitle="Key facts at a glance">

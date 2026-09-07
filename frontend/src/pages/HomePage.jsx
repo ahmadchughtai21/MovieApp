@@ -5,6 +5,7 @@ import Hero from '../components/Hero'
 import Section from '../components/Section'
 import MediaRail from '../components/MediaRail'
 import MediaCard from '../components/MediaCard'
+import ContinueWatching from '../components/ContinueWatching'
 import { HeroSkeleton, CardSkeleton } from '../components/Loading'
 import ErrorState from '../components/ErrorState'
 
@@ -68,6 +69,7 @@ export default function HomePage() {
 
   return (
     <div className="page">
+      <ContinueWatching />
       <Hero item={heroItem} kind={heroKind} />
 
       <Section

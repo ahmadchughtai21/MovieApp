@@ -2,11 +2,9 @@ const API_BASE = import.meta.env.VITE_API_BASE || '/api'
 
 function buildUrl(path, params) {
   const fullPath = API_BASE + path
-  // Handle both absolute and relative URLs
-  const url = fullPath.startsWith('http') 
+  const url = fullPath.startsWith('http')
     ? new URL(fullPath)
     : new URL(fullPath, window.location.origin)
-  
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
@@ -17,8 +15,52 @@ function buildUrl(path, params) {
   return url.toString()
 }
 
+function getToken() {
+  return localStorage.getItem('madflix_token')
+}
+
 async function fetchJson(path, params) {
-  const res = await fetch(buildUrl(path, params))
+  const token = getToken()
+  const headers = {}
+  if (token) headers['Authorization'] = `Token ${token}`
+  const res = await fetch(buildUrl(path, params), { headers })
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(text || `Request failed: ${res.status}`)
+  }
+  return res.json()
+}
+
+async function fetchPost(path, body) {
+  const token = getToken()
+  const headers = { 'Content-Type': 'application/json' }
+  if (token) headers['Authorization'] = `Token ${token}`
+  const res = await fetch(buildUrl(path), { method: 'POST', headers, body: JSON.stringify(body) })
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(text || `Request failed: ${res.status}`)
+  }
+  return res.json()
+}
+
+async function fetchDelete(path) {
+  const token = getToken()
+  const headers = {}
+  if (token) headers['Authorization'] = `Token ${token}`
+  const res = await fetch(buildUrl(path), { method: 'DELETE', headers })
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(text || `Request failed: ${res.status}`)
+  }
+  if (res.status === 204) return null
+  return res.json()
+}
+
+async function fetchPut(path, body) {
+  const token = getToken()
+  const headers = { 'Content-Type': 'application/json' }
+  if (token) headers['Authorization'] = `Token ${token}`
+  const res = await fetch(buildUrl(path), { method: 'PUT', headers, body: JSON.stringify(body) })
   if (!res.ok) {
     const text = await res.text()
     throw new Error(text || `Request failed: ${res.status}`)
@@ -61,5 +103,42 @@ export const api = {
 
   allGenres: () => fetchJson('/genres/'),
   movieGenres: () => fetchJson('/genres/movies/'),
-  showGenres: () => fetchJson('/genres/shows/')
+  showGenres: () => fetchJson('/genres/shows/'),
+
+  watchlist: (mediaType) => fetchJson('/watchlist/', mediaType ? { media_type: mediaType } : undefined),
+  watchlistAdd: (data) => fetchPost('/watchlist/add/', data),
+  watchlistRemove: (itemId) => fetchDelete(`/watchlist/${itemId}/`),
+  watchlistCheck: (tmdbId, mediaType) => fetchJson('/watchlist/check/', { tmdb_id: tmdbId, media_type: mediaType }),
+
+  history: () => fetchJson('/history/'),
+  historyAdd: (data) => fetchPost('/history/add/', data),
+  historyLatest: () => fetchJson('/history/latest/'),
+  continueWatching: () => fetchJson('/continue-watching/'),
+  markAsWatched: (data) => fetchPost('/history/mark-watched/', data),
+  checkWatched: (tmdbId, mediaType, season, episode) => {
+    const params = { tmdb_id: tmdbId, media_type: mediaType }
+    if (season) params.season = season
+    if (episode) params.episode = episode
+    return fetchJson('/history/check-watched/', params)
+  },
+
+  sessionCreate: (data) => fetchPost('/sessions/create/', data),
+  sessionUpdate: (sessionId, data) => fetchPut(`/sessions/${sessionId}/update/`, data),
+  sessionResume: (tmdbId, mediaType, season, episode) => {
+    const params = { tmdb_id: tmdbId, media_type: mediaType }
+    if (season) params.season = season
+    if (episode) params.episode = episode
+    return fetchJson('/sessions/resume/', params)
+  },
+
+  adminStats: () => fetchJson('/admin/stats/'),
+  adminActivity: (limit = 50) => fetchJson('/admin/activity/', { limit }),
+  adminUsers: () => fetchJson('/admin/users/'),
+  adminTopContent: (limit = 20) => fetchJson('/admin/top-content/', { limit }),
+  adminLiveSessions: () => fetchJson('/admin/live/'),
+  adminSearches: (limit = 50) => fetchJson('/admin/searches/', { limit }),
+  adminSearchStats: () => fetchJson('/admin/search-stats/'),
+  adminBannedIps: () => fetchJson('/admin/banned-ips/'),
+  adminBanIp: (ipAddress, reason) => fetchPost('/admin/ban-ip/', { ip_address: ipAddress, reason }),
+  adminUnbanIp: (banId) => fetchDelete(`/admin/unban-ip/${banId}/`),
 }
