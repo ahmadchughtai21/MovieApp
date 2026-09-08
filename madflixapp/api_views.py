@@ -3,6 +3,8 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from django.http import JsonResponse
+from django.core.cache import cache
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
 from .serializers import (
     GenreSerializer, MovieSearchSerializer, TVSearchSerializer,
@@ -57,16 +59,23 @@ SHOWS_GENRES = [
 
 # Helper function to make TMDB requests
 def make_tmdb_request(endpoint, params=None):
-    """Helper function to make requests to TMDB API"""
+    """Helper function to make requests to TMDB API with caching"""
+    cache_key = f'tmdb:{endpoint}:{hash(frozenset(params.items()) if params else frozenset())}'
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     try:
         url = f"{TMDB_BASE_URL}{endpoint}"
         if params is None:
             params = {}
         params['api_key'] = TMDB_API_KEY
 
-        response = requests.get(url, params=params)
+        response = requests.get(url, params=params, timeout=10)
         response.raise_for_status()
-        return response.json()
+        data = response.json()
+        cache.set(cache_key, data, 300)  # Cache for 5 minutes
+        return data
     except requests.exceptions.RequestException as e:
         return {"error": str(e)}
 
@@ -79,30 +88,52 @@ def make_tmdb_request(endpoint, params=None):
 def api_home_data(request):
     """
     Get all home page data including trending movies/shows, popular, upcoming, etc.
+    Uses parallel requests for faster loading.
     """
     try:
-        data = {}
-
-        # Movies data
-        data['movies'] = {
-            'trending_this_week': make_tmdb_request('/trending/movie/week'),
-            'popular': make_tmdb_request('/movie/popular'),
-            'upcoming': make_tmdb_request('/movie/upcoming'),
-            'top_rated': make_tmdb_request('/movie/top_rated'),
+        # Define all TMDB endpoints to fetch
+        endpoints = {
+            'movies_trending': '/trending/movie/week',
+            'movies_popular': '/movie/popular',
+            'movies_upcoming': '/movie/upcoming',
+            'movies_top_rated': '/movie/top_rated',
+            'shows_airing_today': '/tv/airing_today',
+            'shows_on_the_air': '/tv/on_the_air',
+            'shows_trending': '/trending/tv/week',
+            'shows_top_rated': '/tv/top_rated',
         }
 
-        # TV Shows data
-        data['shows'] = {
-            'airing_today': make_tmdb_request('/tv/airing_today'),
-            'on_the_air': make_tmdb_request('/tv/on_the_air'),
-            'trending_this_week': make_tmdb_request('/trending/tv/week'),
-            'top_rated': make_tmdb_request('/tv/top_rated'),
-        }
+        # Fetch all in parallel
+        results = {}
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            future_to_key = {
+                executor.submit(make_tmdb_request, path): key
+                for key, path in endpoints.items()
+            }
+            for future in as_completed(future_to_key):
+                key = future_to_key[future]
+                try:
+                    results[key] = future.result()
+                except Exception:
+                    results[key] = {"error": "Failed to fetch"}
 
-        # Genres
-        data['genres'] = {
-            'movies': MOVIES_GENRES,
-            'shows': SHOWS_GENRES
+        data = {
+            'movies': {
+                'trending_this_week': results.get('movies_trending', {}),
+                'popular': results.get('movies_popular', {}),
+                'upcoming': results.get('movies_upcoming', {}),
+                'top_rated': results.get('movies_top_rated', {}),
+            },
+            'shows': {
+                'airing_today': results.get('shows_airing_today', {}),
+                'on_the_air': results.get('shows_on_the_air', {}),
+                'trending_this_week': results.get('shows_trending', {}),
+                'top_rated': results.get('shows_top_rated', {}),
+            },
+            'genres': {
+                'movies': MOVIES_GENRES,
+                'shows': SHOWS_GENRES,
+            },
         }
 
         return Response(data, status=status.HTTP_200_OK)
@@ -124,10 +155,28 @@ def api_movies_data(request):
     Get movies data including now playing, popular, and upcoming
     """
     try:
+        endpoints = {
+            'now_playing': '/movie/now_playing',
+            'popular': '/movie/popular',
+            'upcoming': '/movie/upcoming',
+        }
+        results = {}
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            future_to_key = {
+                executor.submit(make_tmdb_request, path): key
+                for key, path in endpoints.items()
+            }
+            for future in as_completed(future_to_key):
+                key = future_to_key[future]
+                try:
+                    results[key] = future.result()
+                except Exception:
+                    results[key] = {"error": "Failed to fetch"}
+
         data = {
-            'now_playing': make_tmdb_request('/movie/now_playing'),
-            'popular': make_tmdb_request('/movie/popular'),
-            'upcoming': make_tmdb_request('/movie/upcoming'),
+            'now_playing': results.get('now_playing', {}),
+            'popular': results.get('popular', {}),
+            'upcoming': results.get('upcoming', {}),
         }
         return Response(data, status=status.HTTP_200_OK)
 
@@ -221,6 +270,21 @@ def api_movie_search(request):
                 'query': query,
                 'page': page
             })
+
+            # Log search
+            try:
+                from .models import SearchLog
+                results_count = data.get('total_results', 0) if isinstance(data, dict) else 0
+                ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR', '')
+                SearchLog.objects.create(
+                    query=f"movie:{query}",
+                    results_count=results_count,
+                    ip_address=ip,
+                    user=request.user if request.user.is_authenticated else None,
+                )
+            except Exception:
+                pass
+
             return Response(data, status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -307,11 +371,30 @@ def api_shows_data(request):
     Get TV shows data including airing today, on the air, popular, and top rated
     """
     try:
+        endpoints = {
+            'airing_today': '/tv/airing_today',
+            'on_the_air': '/tv/on_the_air',
+            'popular': '/tv/popular',
+            'top_rated': '/tv/top_rated',
+        }
+        results = {}
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            future_to_key = {
+                executor.submit(make_tmdb_request, path): key
+                for key, path in endpoints.items()
+            }
+            for future in as_completed(future_to_key):
+                key = future_to_key[future]
+                try:
+                    results[key] = future.result()
+                except Exception:
+                    results[key] = {"error": "Failed to fetch"}
+
         data = {
-            'airing_today': make_tmdb_request('/tv/airing_today'),
-            'on_the_air': make_tmdb_request('/tv/on_the_air'),
-            'popular': make_tmdb_request('/tv/popular'),
-            'top_rated': make_tmdb_request('/tv/top_rated'),
+            'airing_today': results.get('airing_today', {}),
+            'on_the_air': results.get('on_the_air', {}),
+            'popular': results.get('popular', {}),
+            'top_rated': results.get('top_rated', {}),
         }
         return Response(data, status=status.HTTP_200_OK)
 
@@ -405,6 +488,21 @@ def api_show_search(request):
                 'query': query,
                 'page': page
             })
+
+            # Log search
+            try:
+                from .models import SearchLog
+                results_count = data.get('total_results', 0) if isinstance(data, dict) else 0
+                ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR', '')
+                SearchLog.objects.create(
+                    query=f"tv:{query}",
+                    results_count=results_count,
+                    ip_address=ip,
+                    user=request.user if request.user.is_authenticated else None,
+                )
+            except Exception:
+                pass
+
             return Response(data, status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -770,6 +868,21 @@ def api_multi_search(request):
             'query': query,
             'page': page
         })
+
+        # Log search
+        try:
+            from .models import SearchLog
+            results_count = data.get('total_results', 0) if isinstance(data, dict) else 0
+            ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR', '')
+            SearchLog.objects.create(
+                query=query,
+                results_count=results_count,
+                ip_address=ip,
+                user=request.user if request.user.is_authenticated else None,
+            )
+        except Exception:
+            pass
+
         return Response(data, status=status.HTTP_200_OK)
     except Exception as e:
         return Response(

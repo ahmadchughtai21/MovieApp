@@ -27,23 +27,29 @@ export default function LoginPage() {
 
   return (
     <div className="auth-page">
-      <div className="auth-card">
-        <div className="auth-header">
+      <div className="auth-panel">
+        <div className="auth-brand">
           <Link to="/" className="brand" aria-label="Madflix home">
-            <span className="brand-mark">M</span>
+            <span className="brand-mark brand-mark-lg">M</span>
           </Link>
           <h1 className="auth-title">Welcome back</h1>
           <p className="auth-sub">Sign in to continue watching</p>
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit}>
-          {error && <div className="auth-error">{error}</div>}
+          {error && (
+            <div className="auth-error">
+              <Icon name="x" size={14} />
+              {error}
+            </div>
+          )}
 
           <label className="auth-label">
-            Username
+            <span>Username</span>
             <input
               type="text"
               className="auth-input"
+              placeholder="Enter your username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
@@ -53,10 +59,11 @@ export default function LoginPage() {
           </label>
 
           <label className="auth-label">
-            Password
+            <span>Password</span>
             <input
               type="password"
               className="auth-input"
+              placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -64,13 +71,18 @@ export default function LoginPage() {
             />
           </label>
 
-          <button type="submit" className="btn btn-accent auth-submit" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign In'}
+          <button type="submit" className="auth-submit" disabled={loading}>
+            {loading ? (
+              <span className="auth-submit-loading">
+                <span className="spinner"></span>
+                Signing in...
+              </span>
+            ) : 'Sign In'}
           </button>
         </form>
 
-        <p className="auth-footer-text">
-          Don&apos;t have an account?{' '}
+        <p className="auth-footer">
+          Don't have an account?{' '}
           <Link to="/register" className="auth-link">Create one</Link>
         </p>
       </div>

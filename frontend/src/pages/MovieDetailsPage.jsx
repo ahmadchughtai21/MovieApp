@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import { buildImageUrl } from '../lib/image'
 import { useImageConfig } from '../lib/imageConfig'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 import { formatDate, formatRuntime, compactNumber } from '../lib/format'
-import Section from '../components/Section'
 import MediaCard from '../components/MediaCard'
 import MediaRail from '../components/MediaRail'
 import CastList from '../components/CastList'
@@ -16,7 +15,6 @@ import ErrorState from '../components/ErrorState'
 import Player from '../components/Player'
 import WhereToWatch from '../components/WhereToWatch'
 import WatchlistButton from '../components/WatchlistButton'
-import MarkAsWatched from '../components/MarkAsWatched'
 import { buildStreamSources } from '../lib/streamSources'
 
 export default function MovieDetailsPage() {
@@ -28,27 +26,13 @@ export default function MovieDetailsPage() {
     let active = true
     setState({ loading: true, error: null, data: null })
     api.movieDetails(id)
-      .then((data) => {
-        if (active) setState({ loading: false, error: null, data })
-      })
-      .catch((error) => {
-        if (active) setState({ loading: false, error: error.message, data: null })
-      })
-
-    return () => {
-      active = false
-    }
+      .then((data) => { if (active) setState({ loading: false, error: null, data }) })
+      .catch((error) => { if (active) setState({ loading: false, error: error.message, data: null }) })
+    return () => { active = false }
   }, [id])
 
   const details = state.data?.movie_details
   useDocumentTitle(details?.title)
-
-  const stats = useMemo(() => ([
-    { label: 'Runtime', value: formatRuntime(details?.runtime) },
-    { label: 'Budget', value: details?.budget ? `$${compactNumber(details.budget)}` : 'Unknown' },
-    { label: 'Revenue', value: details?.revenue ? `$${compactNumber(details.revenue)}` : 'Unknown' },
-    { label: 'Status', value: details?.status || 'Unknown' }
-  ]), [details])
 
   const streamSources = useMemo(
     () => buildStreamSources({ id: details?.id }),
@@ -63,70 +47,53 @@ export default function MovieDetailsPage() {
   const videos = state.data?.videos?.results || []
   const similar = state.data?.similar_movies?.results || []
 
-  const backdrop = buildImageUrl(config, details.backdrop_path, 'backdrop')
-  const poster = buildImageUrl(config, details.poster_path, 'poster')
+  const backdrop = buildImageUrl(config, details.backdrop_path, 'backdrop', 'original')
+  const poster = buildImageUrl(config, details.poster_path, 'poster', 'w500')
   const releaseYear = details.release_date ? new Date(details.release_date).getFullYear() : null
   const rating = details.vote_average ? details.vote_average.toFixed(1) : null
 
   return (
-    <div className="page details">
-      <section className="details-hero">
-        {backdrop ? (
-          <div className="details-backdrop" style={{ backgroundImage: `url(${backdrop})` }} />
-        ) : (
-          <div className="details-backdrop" style={{ background: 'linear-gradient(135deg, #1c1c1f, #09090b)' }} />
-        )}
-        <div className="details-overlay" />
+    <div className="md-page">
+      {/* Full-screen hero */}
+      <section className="md-hero">
+        <div className="md-backdrop" style={backdrop ? { backgroundImage: `url(${backdrop})` } : {}} />
+        <div className="md-overlay" />
 
-        <div className="details-content">
-          <div className="details-poster">
-            {poster ? <img src={poster} alt={details.title} /> : <div className="poster-fallback">No image</div>}
+        <div className="md-hero-inner">
+          <div className="md-poster-wrap">
+            <div className="md-poster">
+              {poster ? <img src={poster} alt={details.title} /> : <div className="md-poster-fallback">No image</div>}
+            </div>
           </div>
-          <div className="details-info">
-            <span className="details-eyebrow">Movie</span>
-            <h1>{details.title}</h1>
 
-            {details.tagline ? (
-              <p style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.95rem' }}>
-                {details.tagline}
-              </p>
-            ) : null}
+          <div className="md-info">
+            <span className="md-type">Movie</span>
+            <h1 className="md-title">{details.title}</h1>
+            {details.tagline && <p className="md-tagline">{details.tagline}</p>}
 
-            <div className="details-meta">
-              {releaseYear ? <span>{releaseYear}</span> : null}
-              {releaseYear && rating ? <span className="dot" /> : null}
-              {rating ? (
-                <span className="details-rating">
-                  <Icon name="star" size={14} />
-                  {rating}
-                  <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: 4 }}>
-                    ({details.vote_count || 0})
-                  </span>
+            <div className="md-meta">
+              {releaseYear && <span className="md-meta-item">{releaseYear}</span>}
+              {rating && (
+                <span className="md-meta-item md-rating">
+                  <Icon name="star" size={16} /> {rating}
                 </span>
-              ) : null}
-              {details.runtime ? (
-                <>
-                  <span className="dot" />
-                  <span>{formatRuntime(details.runtime)}</span>
-                </>
-              ) : null}
+              )}
+              {details.runtime && <span className="md-meta-item">{formatRuntime(details.runtime)}</span>}
+              {details.vote_count > 0 && <span className="md-meta-item">{compactNumber(details.vote_count)} votes</span>}
             </div>
 
-            {details.overview ? <p className="details-overview">{details.overview}</p> : null}
+            {details.overview && <p className="md-overview">{details.overview}</p>}
 
-            {details.genres?.length ? (
-              <div className="details-genres">
-                {details.genres.map((genre) => (
-                  <a key={genre.id} href={`/movies?genre=${genre.id}`} className="chip">
-                    {genre.name}
-                  </a>
+            {details.genres?.length > 0 && (
+              <div className="md-genres">
+                {details.genres.map((g) => (
+                  <Link key={g.id} to={`/movies?genre=${g.id}`} className="md-chip">{g.name}</Link>
                 ))}
               </div>
-            ) : null}
+            )}
 
-            <div className="details-actions">
+            <div className="md-actions">
               <WatchlistButton tmdbId={details.id} mediaType="movie" title={details.title} posterPath={details.poster_path} />
-              <MarkAsWatched tmdbId={details.id} mediaType="movie" title={details.title} posterPath={details.poster_path} />
             </div>
 
             <WhereToWatch kind="movie" id={details.id} title={details.title} />
@@ -134,42 +101,63 @@ export default function MovieDetailsPage() {
         </div>
       </section>
 
-      <Section title="Stream" subtitle="Pick a server and tap fullscreen to watch distraction-free">
-        <Player key={details.id} sources={streamSources} title={`Stream ${details.title}`} tmdbId={details.id} mediaType="movie" />
-      </Section>
+      {/* Player */}
+      <section className="md-player-section">
+        <Player
+          key={details.id}
+          sources={streamSources}
+          title={`Stream ${details.title}`}
+          tmdbId={details.id}
+          mediaType="movie"
+          posterPath={details.poster_path}
+        />
+      </section>
 
-      <Section title="Overview" subtitle="Key facts at a glance">
-        <div className="stat-grid">
-          {stats.map((stat) => (
-            <div key={stat.label} className="stat-card">
-              <div className="stat-label">{stat.label}</div>
-              <div className="stat-value">{stat.value}</div>
+      {/* Quick facts */}
+      <section className="md-facts">
+        {[
+          { icon: 'clock', label: 'Runtime', value: formatRuntime(details.runtime) },
+          { icon: 'dollarSign', label: 'Budget', value: details.budget ? `$${compactNumber(details.budget)}` : '—' },
+          { icon: 'trendingUp', label: 'Revenue', value: details.revenue ? `$${compactNumber(details.revenue)}` : '—' },
+          { icon: 'circle', label: 'Status', value: details.status || '—' },
+        ].map((f) => (
+          <div key={f.label} className="md-fact">
+            <Icon name={f.icon} size={20} />
+            <div className="md-fact-body">
+              <span className="md-fact-label">{f.label}</span>
+              <span className="md-fact-value">{f.value}</span>
             </div>
-          ))}
-        </div>
-      </Section>
+          </div>
+        ))}
+      </section>
 
-      <Section title="Cast" subtitle="The people on screen">
-        <CastList cast={credits?.cast?.slice(0, 12) || []} />
-      </Section>
+      {/* Cast */}
+      {credits?.cast?.length > 0 && (
+        <section className="md-section">
+          <h2 className="md-section-title">Cast</h2>
+          <CastList cast={credits.cast.slice(0, 12)} />
+        </section>
+      )}
 
-      <Section title="You might also like" subtitle="Similar picks from TMDB">
-        {similar.length > 0 ? (
+      {/* Similar */}
+      {similar.length > 0 && (
+        <section className="md-section">
+          <h2 className="md-section-title">You might also like</h2>
           <MediaRail>
             {similar.slice(0, 12).map((item) => (
               <MediaCard key={item.id} item={item} kind="movie" to={`/movies/${item.id}`} />
             ))}
           </MediaRail>
-        ) : (
-          <div className="state">
-            <p>No similar movies found.</p>
-          </div>
-        )}
-      </Section>
+        </section>
+      )}
 
-      <Section title="Trailers and clips" subtitle="From TMDB">
-        <VideoRail videos={videos} />
-      </Section>
+      {/* Trailers */}
+      {videos.length > 0 && (
+        <section className="md-section">
+          <h2 className="md-section-title">Trailers & Clips</h2>
+          <VideoRail videos={videos} />
+        </section>
+      )}
     </div>
   )
 }

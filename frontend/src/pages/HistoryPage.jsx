@@ -2,106 +2,116 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { api } from '../lib/api'
+import { buildImageUrl } from '../lib/image'
 import { useImageConfig } from '../lib/imageConfig'
-import Icon from '../components/Icon'
 import Loading from '../components/Loading'
-
-const IMG_BASE = 'https://image.tmdb.org/t/p'
-
-function formatTimestamp(ts) {
-  const d = new Date(ts)
-  const now = new Date()
-  const diff = now - d
-  if (diff < 60000) return 'Just now'
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`
-  return d.toLocaleDateString()
-}
-
-function formatWatchTime(seconds) {
-  if (!seconds) return null
-  const m = Math.floor(seconds / 60)
-  if (m < 1) return '< 1 min'
-  if (m < 60) return `${m} min`
-  const h = Math.floor(m / 60)
-  return `${h}h ${m % 60}m`
-}
+import ErrorState from '../components/ErrorState'
 
 export default function HistoryPage() {
   const { user } = useAuth()
-  const { sizes } = useImageConfig()
-  const [items, setItems] = useState([])
+  const config = useImageConfig()
+  const [data, setData] = useState(null)
+  const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!user) return
+    let active = true
     setLoading(true)
     api.history()
-      .then((data) => setItems(data))
-      .catch(() => setItems([]))
-      .finally(() => setLoading(false))
-  }, [user])
+      .then((payload) => {
+        if (active) setData(payload)
+      })
+      .catch((err) => {
+        if (active) setError(err.message)
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => { active = false }
+  }, [])
 
   if (!user) {
     return (
-      <div className="page-head" style={{ textAlign: 'center', padding: '60px 20px' }}>
-        <h1>Sign in to view your history</h1>
-        <Link to="/login" className="btn btn-accent" style={{ marginTop: '16px' }}>Sign In</Link>
+      <div className="page genres-page">
+        <div className="genres-hero">
+          <div className="genres-hero-content">
+            <h1 className="genres-title">Watch History</h1>
+            <p className="genres-subtitle">Your watched movies and shows</p>
+          </div>
+        </div>
+        <div className="genres-section">
+          <div className="genres-section-header">
+            <h2 className="genres-section-title">No history yet</h2>
+            <p className="genres-section-sub">Start watching to see your history</p>
+          </div>
+        </div>
       </div>
+    )
+  }
+  if (error) return <div className="page"><ErrorState message={error} /></div>
+  if (loading) return <div className="page"><Loading /></div>
+
+  const watchedMovies = Array.isArray(data) ? data.filter((i) => i.media_type === 'movie') : []
+  const watchedShows = Array.isArray(data) ? data.filter((i) => i.media_type === 'tv') : []
+
+  const renderCard = (item) => {
+    const image = buildImageUrl(config, item.poster_path, 'poster', 'w185')
+    const linkTo = item.media_type === 'movie' ? `/movies/${item.tmdb_id}` : `/shows/${item.tmdb_id}`
+    return (
+      <Link key={item.id} to={linkTo} className="media-card">
+        <div className="media-poster">
+          {image ? (
+            <img src={image} alt={item.title} loading="lazy" decoding="async" />
+          ) : (
+            <div className="poster-fallback">No image</div>
+          )}
+        </div>
+        <div className="media-info">
+          <div className="media-title" title={item.title}>{item.title}</div>
+        </div>
+      </Link>
     )
   }
 
   return (
-    <div>
-      <div className="page-head">
-        <div>
-          <h1 className="page-title">Watch History</h1>
-          <p className="page-sub">{items.length} {items.length === 1 ? 'entry' : 'entries'}</p>
+    <div className="page">
+      <div className="genres-hero">
+        <div className="genres-hero-content">
+          <h1 className="genres-title">Watch History</h1>
+          <p className="genres-subtitle">Your watched movies and shows</p>
         </div>
       </div>
 
-      {loading ? (
-        <Loading />
-      ) : items.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
-          <Icon name="play" size={48} className="" style={{ opacity: 0.3 }} />
-          <p style={{ marginTop: '16px' }}>No watch history yet</p>
-          <Link to="/movies" className="btn btn-ghost" style={{ marginTop: '12px' }}>Start Watching</Link>
+      {watchedMovies.length > 0 && (
+        <div className="genres-section">
+          <div className="genres-section-header">
+            <h2 className="genres-section-title">Movies</h2>
+            <p className="genres-section-sub">Your watched movies</p>
+          </div>
+          <div className="grid">
+            {watchedMovies.map(renderCard)}
+          </div>
         </div>
-      ) : (
-        <div className="history-list">
-          {items.map((item) => {
-            const posterSize = sizes?.poster || 'w342'
-            const posterUrl = item.poster_path ? `${IMG_BASE}/${posterSize}${item.poster_path}` : null
-            const linkTo = item.media_type === 'tv'
-              ? `/shows/${item.tmdb_id}?s=${item.season || 1}&e=${item.episode || 1}`
-              : `/movies/${item.tmdb_id}`
-            const episodeLabel = item.season && item.episode ? `S${item.season}E${item.episode}` : null
-            const watchTime = formatWatchTime(item.progress_seconds)
+      )}
 
-            return (
-              <Link key={item.id} to={linkTo} className="history-item">
-                <div
-                  className="history-poster"
-                  style={{
-                    width: 80,
-                    height: 120,
-                    borderRadius: 'var(--radius)',
-                    background: posterUrl ? `url(${posterUrl}) center/cover` : 'var(--bg-elevated)',
-                    flexShrink: 0,
-                  }}
-                />
-                <div className="history-info">
-                  <h3 className="history-title">{item.title || `TMDB ${item.tmdb_id}`}</h3>
-                  <div className="history-meta">
-                    {episodeLabel && <span className="history-badge">{episodeLabel}</span>}
-                    <span className="history-time">{formatTimestamp(item.timestamp)}</span>
-                    {watchTime && <span className="history-ip">Watched {watchTime}</span>}
-                  </div>
-                </div>
-              </Link>
-            )
-          })}
+      {watchedShows.length > 0 && (
+        <div className="genres-section">
+          <div className="genres-section-header">
+            <h2 className="genres-section-title">TV Shows</h2>
+            <p className="genres-section-sub">Your watched shows</p>
+          </div>
+          <div className="grid">
+            {watchedShows.map(renderCard)}
+          </div>
+        </div>
+      )}
+
+      {watchedMovies.length === 0 && watchedShows.length === 0 && (
+        <div className="genres-section">
+          <div className="genres-section-header">
+            <h2 className="genres-section-title">No watch history yet</h2>
+            <p className="genres-section-sub">Start watching to see your history</p>
+          </div>
         </div>
       )}
     </div>

@@ -38,11 +38,9 @@ const PATHS = {
   ),
   film: (
     <>
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <path d="M3 8h18" />
-      <path d="M3 16h18" />
-      <path d="M8 3v18" />
-      <path d="M16 3v18" />
+      <path d="M7 3h14a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H7l-5-9V4a1 1 0 0 1 1-1z" />
+      <path d="M10 3v4l2.5-1.5L15 7V3" />
+      <path d="M10 13h8M10 17h5" />
     </>
   ),
   home: (
@@ -143,6 +141,63 @@ const PATHS = {
     <>
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
       <path d="m9 12 2 2 4-4" />
+    </>
+  ),
+  logOut: (
+    <>
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </>
+  ),
+  shield: (
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+  ),
+  plus: (
+    <>
+      <path d="M5 12h14" />
+      <path d="M12 5v14" />
+    </>
+  ),
+  eye: (
+    <>
+      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
+  bookmark: (
+    <>
+      <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
+    </>
+  ),
+  maximize: (
+    <>
+      <path d="M3 9V5a2 2 0 0 1 2-2h4" />
+      <path d="M21 9V5a2 2 0 0 0-2-2h-4" />
+      <path d="M3 15v4a2 2 0 0 0 2 2h4" />
+      <path d="M21 15v4a2 2 0 0 1-2 2h-4" />
+    </>
+  ),
+  dollarSign: (
+    <>
+      <line x1="12" y1="2" x2="12" y2="22" />
+      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+    </>
+  ),
+  trendingUp: (
+    <>
+      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+      <polyline points="16 7 22 7 22 13" />
+    </>
+  ),
+  circle: (
+    <circle cx="12" cy="12" r="9" />
+  ),
+  userCheck: (
+    <>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <polyline points="16 11 18 13 22 9" />
     </>
   ),
 }

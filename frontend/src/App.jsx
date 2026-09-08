@@ -12,7 +12,6 @@ import GenresPage from './pages/GenresPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import AdminDashboardPage from './pages/AdminDashboardPage'
-import HistoryPage from './pages/HistoryPage'
 import WatchlistPage from './pages/WatchlistPage'
 import NotFound from './pages/NotFound'
 
@@ -32,7 +31,6 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/admin" element={<AdminDashboardPage />} />
-            <Route path="/history" element={<HistoryPage />} />
             <Route path="/watchlist" element={<WatchlistPage />} />
             <Route path="*" element={<NotFound />} />
           </Route>

@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import { buildImageUrl } from '../lib/image'
 import { useImageConfig } from '../lib/imageConfig'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 import { formatDate } from '../lib/format'
-import Section from '../components/Section'
 import MediaCard from '../components/MediaCard'
 import MediaRail from '../components/MediaRail'
 import CastList from '../components/CastList'
@@ -16,7 +15,6 @@ import ErrorState from '../components/ErrorState'
 import Player from '../components/Player'
 import WhereToWatch from '../components/WhereToWatch'
 import WatchlistButton from '../components/WatchlistButton'
-import MarkAsWatched from '../components/MarkAsWatched'
 import { buildStreamSources } from '../lib/streamSources'
 
 export default function ShowDetailsPage() {
@@ -38,36 +36,20 @@ export default function ShowDetailsPage() {
           setEpisodeData(data.episode_details)
         }
       })
-      .catch((error) => {
-        if (active) setState({ loading: false, error: error.message, data: null })
-      })
-
-    return () => {
-      active = false
-    }
+      .catch((error) => { if (active) setState({ loading: false, error: error.message, data: null }) })
+    return () => { active = false }
   }, [id, season, episode])
 
   useEffect(() => {
-    api.seasonDetails(id, season)
-      .then((data) => setSeasonData(data))
-      .catch(() => setSeasonData(null))
+    api.seasonDetails(id, season).then(setSeasonData).catch(() => setSeasonData(null))
   }, [id, season])
 
   useEffect(() => {
-    api.episodeDetails(id, season, episode)
-      .then((data) => setEpisodeData(data))
-      .catch(() => {})
+    api.episodeDetails(id, season, episode).then(setEpisodeData).catch(() => {})
   }, [id, season, episode])
 
   const details = state.data?.show_details
   useDocumentTitle(details?.name)
-
-  const meta = useMemo(() => ([
-    { label: 'First aired', value: formatDate(details?.first_air_date) },
-    { label: 'Status', value: details?.status || 'Unknown' },
-    { label: 'Episodes', value: details?.number_of_episodes || 'Unknown' },
-    { label: 'Seasons', value: details?.number_of_seasons || 'Unknown' }
-  ]), [details])
 
   const streamSources = useMemo(
     () => buildStreamSources({ id: details?.id, season, episode }),
@@ -84,80 +66,56 @@ export default function ShowDetailsPage() {
   const seasons = state.data?.seasons_data || []
   const nav = state.data?.navigation_info
 
-  const backdrop = buildImageUrl(config, details.backdrop_path, 'backdrop')
-  const poster = buildImageUrl(config, details.poster_path, 'poster')
+  const backdrop = buildImageUrl(config, details.backdrop_path, 'backdrop', 'original')
+  const poster = buildImageUrl(config, details.poster_path, 'poster', 'w500')
   const episodeList = seasonData?.episodes || []
   const firstYear = details.first_air_date ? new Date(details.first_air_date).getFullYear() : null
   const rating = details.vote_average ? details.vote_average.toFixed(1) : null
 
-  function handleSeasonChange(event) {
-    setSeason(Number(event.target.value))
-    setEpisode(1)
-  }
-
-  function handleEpisodeChange(event) {
-    setEpisode(Number(event.target.value))
-  }
-
   return (
-    <div className="page details">
-      <section className="details-hero">
-        {backdrop ? (
-          <div className="details-backdrop" style={{ backgroundImage: `url(${backdrop})` }} />
-        ) : (
-          <div className="details-backdrop" style={{ background: 'linear-gradient(135deg, #1c1c1f, #09090b)' }} />
-        )}
-        <div className="details-overlay" />
+    <div className="md-page">
+      {/* Full-screen hero */}
+      <section className="md-hero">
+        <div className="md-backdrop" style={backdrop ? { backgroundImage: `url(${backdrop})` } : {}} />
+        <div className="md-overlay" />
 
-        <div className="details-content">
-          <div className="details-poster">
-            {poster ? <img src={poster} alt={details.name} /> : <div className="poster-fallback">No image</div>}
+        <div className="md-hero-inner">
+          <div className="md-poster-wrap">
+            <div className="md-poster">
+              {poster ? <img src={poster} alt={details.name} /> : <div className="md-poster-fallback">No image</div>}
+            </div>
           </div>
-          <div className="details-info">
-            <span className="details-eyebrow">TV Series</span>
-            <h1>{details.name}</h1>
 
-            {details.tagline ? (
-              <p style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.95rem' }}>
-                {details.tagline}
-              </p>
-            ) : null}
+          <div className="md-info">
+            <span className="md-type">TV Series</span>
+            <h1 className="md-title">{details.name}</h1>
+            {details.tagline && <p className="md-tagline">{details.tagline}</p>}
 
-            <div className="details-meta">
-              {firstYear ? <span>{firstYear}</span> : null}
-              {firstYear && rating ? <span className="dot" /> : null}
-              {rating ? (
-                <span className="details-rating">
-                  <Icon name="star" size={14} />
-                  {rating}
-                  <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: 4 }}>
-                    ({details.vote_count || 0})
-                  </span>
+            <div className="md-meta">
+              {firstYear && <span className="md-meta-item">{firstYear}</span>}
+              {rating && (
+                <span className="md-meta-item md-rating">
+                  <Icon name="star" size={16} /> {rating}
                 </span>
-              ) : null}
-              {details.number_of_seasons ? (
-                <>
-                  <span className="dot" />
-                  <span>{details.number_of_seasons} season{details.number_of_seasons !== 1 ? 's' : ''}</span>
-                </>
-              ) : null}
+              )}
+              {details.number_of_seasons && (
+                <span className="md-meta-item">{details.number_of_seasons} season{details.number_of_seasons !== 1 ? 's' : ''}</span>
+              )}
+              {details.vote_count > 0 && <span className="md-meta-item">{details.vote_count} votes</span>}
             </div>
 
-            {details.overview ? <p className="details-overview">{details.overview}</p> : null}
+            {details.overview && <p className="md-overview">{details.overview}</p>}
 
-            {details.genres?.length ? (
-              <div className="details-genres">
-                {details.genres.map((genre) => (
-                  <a key={genre.id} href={`/shows?genre=${genre.id}`} className="chip">
-                    {genre.name}
-                  </a>
+            {details.genres?.length > 0 && (
+              <div className="md-genres">
+                {details.genres.map((g) => (
+                  <Link key={g.id} to={`/shows?genre=${g.id}`} className="md-chip">{g.name}</Link>
                 ))}
               </div>
-            ) : null}
+            )}
 
-            <div className="details-actions">
+            <div className="md-actions">
               <WatchlistButton tmdbId={details.id} mediaType="tv" title={details.name} posterPath={details.poster_path} />
-              <MarkAsWatched tmdbId={details.id} mediaType="tv" title={details.name} posterPath={details.poster_path} season={season} episode={episode} />
             </div>
 
             <WhereToWatch kind="show" id={details.id} title={details.name} />
@@ -165,115 +123,116 @@ export default function ShowDetailsPage() {
         </div>
       </section>
 
-      <Section title="Stream" subtitle="Pick a server and tap fullscreen to watch distraction-free">
-        <Player key={`${details.id}-${season}-${episode}`} sources={streamSources} title={`Stream ${details.name}`} tmdbId={details.id} mediaType="tv" season={season} episode={episode} />
-      </Section>
+      {/* Player */}
+      <section className="md-player-section">
+        <Player
+          key={`${details.id}-${season}-${episode}`}
+          sources={streamSources}
+          title={`Stream ${details.name}`}
+          tmdbId={details.id}
+          mediaType="tv"
+          season={season}
+          episode={episode}
+          posterPath={details.poster_path}
+        />
+      </section>
 
-      <Section title="Season and episode" subtitle="Navigate the series">
-        <div className="episode-picker">
-          <div className="episode-field">
+      {/* Episode picker */}
+      <section className="md-section">
+        <h2 className="md-section-title">Season & Episode</h2>
+        <div className="md-ep-picker">
+          <div className="md-ep-field">
             <label htmlFor="season-select">Season</label>
-            <select id="season-select" value={season} onChange={handleSeasonChange}>
-              {seasons.map((item) => (
-                <option key={item.season_number} value={item.season_number}>
-                  {item.name || `Season ${item.season_number}`}
-                </option>
+            <select id="season-select" value={season} onChange={(e) => { setSeason(Number(e.target.value)); setEpisode(1) }}>
+              {seasons.map((s) => (
+                <option key={s.season_number} value={s.season_number}>{s.name || `Season ${s.season_number}`}</option>
               ))}
             </select>
           </div>
-          <div className="episode-field">
+          <div className="md-ep-field">
             <label htmlFor="episode-select">Episode</label>
-            <select id="episode-select" value={episode} onChange={handleEpisodeChange}>
-              {episodeList.map((item) => (
-                <option key={item.episode_number} value={item.episode_number}>
-                  {item.episode_number}. {item.name}
-                </option>
+            <select id="episode-select" value={episode} onChange={(e) => setEpisode(Number(e.target.value))}>
+              {episodeList.map((e) => (
+                <option key={e.episode_number} value={e.episode_number}>{e.episode_number}. {e.name}</option>
               ))}
             </select>
           </div>
-          <div className="episode-nav">
-            <button
-              className="btn btn-outline"
-              disabled={!nav?.prev_episode}
-              onClick={() => {
-                if (!nav?.prev_episode) return
-                setSeason(nav.prev_episode.season)
-                setEpisode(nav.prev_episode.episode)
-              }}
-              aria-label="Previous episode"
-            >
-              <Icon name="arrowLeft" size={14} />
-              Prev
+          <div className="md-ep-nav">
+            <button className="md-ep-btn" disabled={!nav?.prev_episode}
+              onClick={() => { if (nav?.prev_episode) { setSeason(nav.prev_episode.season); setEpisode(nav.prev_episode.episode) } }}>
+              <Icon name="arrowLeft" size={14} /> Prev
             </button>
-            <button
-              className="btn btn-outline"
-              disabled={!nav?.next_episode}
-              onClick={() => {
-                if (!nav?.next_episode) return
-                setSeason(nav.next_episode.season)
-                setEpisode(nav.next_episode.episode)
-              }}
-              aria-label="Next episode"
-            >
-              Next
-              <Icon name="arrowRight" size={14} />
+            <button className="md-ep-btn" disabled={!nav?.next_episode}
+              onClick={() => { if (nav?.next_episode) { setSeason(nav.next_episode.season); setEpisode(nav.next_episode.episode) } }}>
+              Next <Icon name="arrowRight" size={14} />
             </button>
           </div>
         </div>
-        {episodeData ? (
-          <div className="episode-card">
-            <div className="episode-card-head">
-              <div className="episode-title">
-                Episode {episodeData.episode_number}: {episodeData.name}
-              </div>
-              {episodeData.vote_average ? (
-                <span className="details-rating" style={{ fontSize: '0.85rem' }}>
-                  <Icon name="star" size={12} />
-                  {episodeData.vote_average.toFixed(1)}
+
+        {episodeData && (
+          <div className="md-ep-card">
+            <div className="md-ep-card-head">
+              <span className="md-ep-card-title">Episode {episodeData.episode_number}: {episodeData.name}</span>
+              {episodeData.vote_average && (
+                <span className="md-rating" style={{ fontSize: '0.82rem' }}>
+                  <Icon name="star" size={12} /> {episodeData.vote_average.toFixed(1)}
                 </span>
-              ) : null}
+              )}
             </div>
-            <div className="episode-meta">
+            <div className="md-ep-card-meta">
               <span><Icon name="calendar" size={12} /> {formatDate(episodeData.air_date)}</span>
-              {episodeData.runtime ? <span><Icon name="clock" size={12} /> {episodeData.runtime}m</span> : null}
+              {episodeData.runtime && <span><Icon name="clock" size={12} /> {episodeData.runtime}m</span>}
             </div>
-            <p>{episodeData.overview || 'No overview available.'}</p>
+            <p className="md-ep-card-desc">{episodeData.overview || 'No overview available.'}</p>
           </div>
-        ) : null}
-      </Section>
+        )}
+      </section>
 
-      <Section title="Show info" subtitle="Key details">
-        <div className="stat-grid">
-          {meta.map((stat) => (
-            <div key={stat.label} className="stat-card">
-              <div className="stat-label">{stat.label}</div>
-              <div className="stat-value">{stat.value}</div>
+      {/* Quick facts */}
+      <section className="md-facts">
+        {[
+          { icon: 'calendar', label: 'First Aired', value: formatDate(details.first_air_date) },
+          { icon: 'circle', label: 'Status', value: details.status || '—' },
+          { icon: 'film', label: 'Episodes', value: details.number_of_episodes || '—' },
+          { icon: 'tv', label: 'Seasons', value: details.number_of_seasons || '—' },
+        ].map((f) => (
+          <div key={f.label} className="md-fact">
+            <Icon name={f.icon} size={20} />
+            <div className="md-fact-body">
+              <span className="md-fact-label">{f.label}</span>
+              <span className="md-fact-value">{f.value}</span>
             </div>
-          ))}
-        </div>
-      </Section>
+          </div>
+        ))}
+      </section>
 
-      <Section title="Cast" subtitle="The people on screen">
-        <CastList cast={credits?.cast?.slice(0, 12) || []} />
-      </Section>
+      {/* Cast */}
+      {credits?.cast?.length > 0 && (
+        <section className="md-section">
+          <h2 className="md-section-title">Cast</h2>
+          <CastList cast={credits.cast.slice(0, 12)} />
+        </section>
+      )}
 
-      <Section title="Recommended" subtitle="Similar series from TMDB">
-        {similar.length > 0 ? (
+      {/* Similar */}
+      {similar.length > 0 && (
+        <section className="md-section">
+          <h2 className="md-section-title">You might also like</h2>
           <MediaRail>
             {similar.slice(0, 12).map((item) => (
               <MediaCard key={item.id} item={item} kind="show" to={`/shows/${item.id}`} />
             ))}
           </MediaRail>
-        ) : (
-          <div className="state">
-            <p>No similar shows found.</p>
-          </div>
-        )}
-      </Section>
+        </section>
+      )}
 
-      <Section title="Trailers and clips" subtitle="From TMDB">
-        <VideoRail videos={videos} />
-      </Section>
+      {/* Trailers */}
+      {videos.length > 0 && (
+        <section className="md-section">
+          <h2 className="md-section-title">Trailers & Clips</h2>
+          <VideoRail videos={videos} />
+        </section>
+      )}
     </div>
   )
 }

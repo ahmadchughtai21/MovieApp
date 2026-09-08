@@ -1,8 +1,8 @@
 const FALLBACK_BASE = 'https://image.tmdb.org/t/p/'
 
 const SIZE_MAP = {
-  poster: 'w342',
-  backdrop: 'w1280',
+  poster: 'w185',
+  backdrop: 'w780',
   profile: 'w185'
 }
 

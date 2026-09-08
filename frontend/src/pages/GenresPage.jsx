@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
-import Section from '../components/Section'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
 import ErrorState from '../components/ErrorState'
 
 export default function GenresPage() {
   useDocumentTitle('Genres')
+  const navigate = useNavigate()
   const [state, setState] = useState({ loading: true, error: null, data: null })
 
   useEffect(() => {
@@ -31,47 +32,67 @@ export default function GenresPage() {
   const showGenres = state.data?.show_genres || []
 
   return (
-    <div className="page">
-      <div className="page-head">
-        <div>
-          <h1>Genres</h1>
-          <p className="page-sub">Jump into curated movie and series collections.</p>
+    <div className="page genres-page">
+      <div className="genres-hero">
+        <div className="genres-hero-content">
+          <h1 className="genres-title">Browse Genres</h1>
+          <p className="genres-subtitle">Find your next favorite movie or show by genre</p>
         </div>
       </div>
 
-      <Section title="Movies" subtitle="Explore movie universes">
+      <div className="genres-section">
+        <div className="genres-section-header">
+          <h2 className="genres-section-title">Movies</h2>
+          <p className="genres-section-sub">Explore movie universes</p>
+        </div>
         {movieGenres.length === 0 ? (
-          <div className="state">
+          <div className="genres-empty">
             <p>No movie genres available right now.</p>
           </div>
         ) : (
-          <div className="genre-grid">
+          <div className="genres-grid">
             {movieGenres.map((genre) => (
-              <a key={genre.id} className="genre-card" href={`/movies?genre=${genre.id}`}>
-                <span>{genre.name}</span>
-                <Icon name="arrowRight" size={14} />
-              </a>
+              <button
+                key={genre.id}
+                className="genre-card-new"
+                onClick={() => navigate(`/movies?genre=${genre.id}`)}
+              >
+                <span className="genre-card-name">{genre.name}</span>
+                <span className="genre-card-icon">
+                  <Icon name="arrowRight" size={16} />
+                </span>
+              </button>
             ))}
           </div>
         )}
-      </Section>
+      </div>
 
-      <Section title="TV Shows" subtitle="Find your next binge">
+      <div className="genres-section">
+        <div className="genres-section-header">
+          <h2 className="genres-section-title">TV Shows</h2>
+          <p className="genres-section-sub">Find your next binge</p>
+        </div>
         {showGenres.length === 0 ? (
-          <div className="state">
+          <div className="genres-empty">
             <p>No show genres available right now.</p>
           </div>
         ) : (
-          <div className="genre-grid">
+          <div className="genres-grid">
             {showGenres.map((genre) => (
-              <a key={genre.id} className="genre-card" href={`/shows?genre=${genre.id}`}>
-                <span>{genre.name}</span>
-                <Icon name="arrowRight" size={14} />
-              </a>
+              <button
+                key={genre.id}
+                className="genre-card-new"
+                onClick={() => navigate(`/shows?genre=${genre.id}`)}
+              >
+                <span className="genre-card-name">{genre.name}</span>
+                <span className="genre-card-icon">
+                  <Icon name="arrowRight" size={16} />
+                </span>
+              </button>
             ))}
           </div>
         )}
-      </Section>
+      </div>
     </div>
   )
 }

@@ -16,8 +16,8 @@ export function ImageConfigProvider({ children }) {
   const [config, setConfig] = useState({
     baseUrl: 'https://image.tmdb.org/t/p/',
     sizes: {
-      poster: 'w342',
-      backdrop: 'w1280',
+      poster: 'w185',
+      backdrop: 'w780',
       profile: 'w185'
     },
     ready: false
@@ -28,8 +28,8 @@ export function ImageConfigProvider({ children }) {
     api.config()
       .then((data) => {
         const images = data?.images || {}
-        const poster = pickImageSize(images.poster_sizes, 'w342', 'w500')
-        const backdrop = pickImageSize(images.backdrop_sizes, 'w1280', 'w780')
+        const poster = pickImageSize(images.poster_sizes, 'w185', 'w185')
+        const backdrop = pickImageSize(images.backdrop_sizes, 'w780', 'w780')
         const profile = pickImageSize(images.profile_sizes, 'w185', 'w185')
         if (active) {
           setConfig({

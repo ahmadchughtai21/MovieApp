@@ -131,6 +131,14 @@ def history_add(request):
         duration_seconds=data.get('duration_seconds', 0),
         ip_address=get_client_ip(request),
     )
+
+    AuditLog.objects.create(
+        user=request.user, action='watch',
+        detail=data.get('title', '') or str(data['tmdb_id']),
+        tmdb_id=data['tmdb_id'], media_type=data['media_type'],
+        ip_address=get_client_ip(request),
+    )
+
     return Response(WatchHistorySerializer(item).data, status=status.HTTP_201_CREATED)
 
 
@@ -245,6 +253,14 @@ def session_create(request):
             'active': True,
         },
     )
+
+    AuditLog.objects.create(
+        user=request.user, action='watch',
+        detail=data.get('title', '') or str(data['tmdb_id']),
+        tmdb_id=data['tmdb_id'], media_type=data['media_type'],
+        ip_address=get_client_ip(request),
+    )
+
     return Response(PlaybackSessionSerializer(session).data, status=status.HTTP_201_CREATED)
 
 

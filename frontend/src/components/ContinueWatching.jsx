@@ -1,15 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { api } from '../lib/api'
-import { useImageConfig } from '../lib/imageConfig'
+import MediaRail from './MediaRail'
+import MediaCard from './MediaCard'
 import Section from './Section'
-
-const IMG_BASE = 'https://image.tmdb.org/t/p'
 
 export default function ContinueWatching() {
   const { user } = useAuth()
-  const { sizes } = useImageConfig()
   const [items, setItems] = useState([])
 
   useEffect(() => {
@@ -23,42 +20,34 @@ export default function ContinueWatching() {
 
   if (!user || items.length === 0) return null
 
-  const posterSize = sizes?.poster || 'w342'
-
   return (
     <Section title="Continue Watching" subtitle="Pick up where you left off">
-      <div className="cw-rail">
+      <MediaRail>
         {items.map((item) => {
-          const posterUrl = item.poster_path ? `${IMG_BASE}/${posterSize}${item.poster_path}` : null
-          const linkTo = item.media_type === 'tv'
+          const kind = item.media_type === 'tv' ? 'show' : 'movie'
+          const to = kind === 'show'
             ? `/shows/${item.tmdb_id}?s=${item.season || 1}&e=${item.episode || 1}`
             : `/movies/${item.tmdb_id}`
-          const episodeLabel = item.season && item.episode ? `S${item.season} E${item.episode}` : null
           const progressPct = item.duration_seconds > 0
             ? Math.round((item.position_seconds / item.duration_seconds) * 100)
             : 0
-
+          const apiItem = {
+            id: item.tmdb_id,
+            title: item.title,
+            poster_path: item.poster_path,
+          }
           return (
-            <Link key={`${item.tmdb_id}-${item.season}-${item.episode}`} to={linkTo} className="cw-card">
-              <div
-                className="cw-poster"
-                style={{
-                  background: posterUrl ? `url(${posterUrl}) center/cover` : 'var(--bg-elevated)',
-                }}
-              />
-              <div className="cw-body">
-                <div className="cw-title">{item.title || `#${item.tmdb_id}`}</div>
-                {episodeLabel && <div className="cw-episode">{episodeLabel}</div>}
-                {progressPct > 0 && (
-                  <div className="cw-progress">
-                    <div className="cw-progress-fill" style={{ width: `${progressPct}%` }} />
-                  </div>
-                )}
-              </div>
-            </Link>
+            <div key={`${item.tmdb_id}-${item.season}-${item.episode}`} className="cw-wrapper">
+              <MediaCard item={apiItem} to={to} kind={kind} />
+              {progressPct > 0 && (
+                <div className="cw-progress-bar">
+                  <div className="cw-progress-fill" style={{ width: `${progressPct}%` }} />
+                </div>
+              )}
+            </div>
           )
         })}
-      </div>
+      </MediaRail>
     </Section>
   )
 }

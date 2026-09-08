@@ -1,56 +1,42 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
+import Hero from '../components/Hero'
 import Section from '../components/Section'
+import MediaRail from '../components/MediaRail'
 import MediaCard from '../components/MediaCard'
-import Pager from '../components/Pager'
-import { GridSkeleton } from '../components/Loading'
+import { HeroSkeleton, CardSkeleton } from '../components/Loading'
 import ErrorState from '../components/ErrorState'
-
-const categories = [
-  { key: 'popular', label: 'Popular' },
-  { key: 'trending', label: 'Trending' },
-  { key: 'top-rated', label: 'Top rated' },
-  { key: 'airing-today', label: 'Airing today' },
-  { key: 'on-the-air', label: 'On the air' }
-]
+import ShowFilterBar from '../components/ShowFilterBar'
 
 export default function ShowsPage() {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const [genres, setGenres] = useState([])
+  useDocumentTitle(null)
+  const [searchParams] = useSearchParams()
+  const genreId = searchParams.get('genre')
+  const searchQuery = searchParams.get('q') || ''
   const [data, setData] = useState(null)
+  const [genreResults, setGenreResults] = useState([])
+  const [genrePage, setGenrePage] = useState(1)
+  const [genreHasMore, setGenreHasMore] = useState(true)
+  const [genreLoading, setGenreLoading] = useState(false)
+  const [searchResults, setSearchResults] = useState([])
+  const [searchPage, setSearchPage] = useState(1)
+  const [searchHasMore, setSearchHasMore] = useState(true)
+  const [searchLoading, setSearchLoading] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
-
-  const category = searchParams.get('category') || 'popular'
-  const timeWindow = searchParams.get('time') || 'week'
-  const genre = searchParams.get('genre') || ''
-  const query = searchParams.get('q') || ''
-  const page = Number(searchParams.get('page') || 1)
-
-  useEffect(() => {
-    api.showGenres().then((payload) => setGenres(payload.genres || [])).catch(() => setGenres([]))
-  }, [])
+  const sentinelRef = useRef(null)
 
   useEffect(() => {
     let active = true
     setLoading(true)
-    setError('')
-
-    const fetcher = async () => {
-      if (query) return api.showsSearch(query, page)
-      if (genre) return api.showsByGenre(genre, page)
-      if (category === 'trending') return api.showsTrending(timeWindow)
-      if (category === 'top-rated') return api.showsTopRated(page)
-      if (category === 'airing-today') return api.showsAiringToday(page)
-      if (category === 'on-the-air') return api.showsOnTheAir(page)
-      return api.showsPopular(page)
-    }
-
-    fetcher()
+    api.home()
       .then((payload) => {
-        if (active) setData(payload)
+        if (active) {
+          setData(payload)
+          setError('')
+        }
       })
       .catch((err) => {
         if (active) setError(err.message)
@@ -58,130 +44,223 @@ export default function ShowsPage() {
       .finally(() => {
         if (active) setLoading(false)
       })
+    return () => { active = false }
+  }, [])
 
-    return () => {
-      active = false
+  useEffect(() => {
+    if (!genreId) {
+      setGenreResults([])
+      setGenrePage(1)
+      setGenreHasMore(true)
+      return
     }
-  }, [category, genre, page, query, timeWindow])
+    let active = true
+    setGenreLoading(true)
+    setGenreResults([])
+    setGenrePage(1)
+    setGenreHasMore(true)
+    api.showsByGenre(genreId, 1)
+      .then((payload) => {
+        if (active) {
+          setGenreResults(payload?.results || [])
+          setGenreHasMore((payload?.page || 1) < (payload?.total_pages || 1))
+          setError('')
+        }
+      })
+      .catch((err) => {
+        if (active) setError(err.message)
+      })
+      .finally(() => {
+        if (active) setGenreLoading(false)
+      })
+    return () => { active = false }
+  }, [genreId])
 
-  const results = data?.results || []
-  const totalPages = Math.min(data?.total_pages || 1, 500)
-
-  const categoryLabel = useMemo(() => {
-    if (query) return `Search: ${query}`
-    if (genre) {
-      const found = genres.find((item) => String(item.id) === String(genre))
-      return found ? `${found.name} shows` : 'Genre picks'
+  useEffect(() => {
+    if (!searchQuery) {
+      setSearchResults([])
+      setSearchPage(1)
+      setSearchHasMore(true)
+      return
     }
-    const found = categories.find((item) => item.key === category)
-    return found ? `${found.label} shows` : 'TV Shows'
-  }, [category, genres, query, genre])
+    let active = true
+    setSearchLoading(true)
+    setSearchResults([])
+    setSearchPage(1)
+    setSearchHasMore(true)
+    api.showsSearch(searchQuery, 1)
+      .then((payload) => {
+        if (active) {
+          setSearchResults(payload?.results || [])
+          setSearchHasMore((payload?.page || 1) < (payload?.total_pages || 1))
+          setError('')
+        }
+      })
+      .catch((err) => {
+        if (active) setError(err.message)
+      })
+      .finally(() => {
+        if (active) setSearchLoading(false)
+      })
+    return () => { active = false }
+  }, [searchQuery])
 
-  useDocumentTitle(categoryLabel)
+  const loadMoreGenre = useCallback(() => {
+    if (!genreId || !genreHasMore || genreLoading) return
+    const nextPage = genrePage + 1
+    setGenreLoading(true)
+    api.showsByGenre(genreId, nextPage)
+      .then((payload) => {
+        setGenreResults(prev => [...prev, ...(payload?.results || [])])
+        setGenrePage(nextPage)
+        setGenreHasMore(nextPage < (payload?.total_pages || 1))
+      })
+      .catch(() => {})
+      .finally(() => setGenreLoading(false))
+  }, [genreId, genrePage, genreHasMore, genreLoading])
 
-  function setParam(next) {
-    const params = new URLSearchParams(searchParams)
-    Object.entries(next).forEach(([key, value]) => {
-      if (value === '' || value === null) params.delete(key)
-      else params.set(key, value)
-    })
-    params.delete('page')
-    setSearchParams(params)
+  const loadMoreSearch = useCallback(() => {
+    if (!searchQuery || !searchHasMore || searchLoading) return
+    const nextPage = searchPage + 1
+    setSearchLoading(true)
+    api.showsSearch(searchQuery, nextPage)
+      .then((payload) => {
+        setSearchResults(prev => [...prev, ...(payload?.results || [])])
+        setSearchPage(nextPage)
+        setSearchHasMore(nextPage < (payload?.total_pages || 1))
+      })
+      .catch(() => {})
+      .finally(() => setSearchLoading(false))
+  }, [searchQuery, searchPage, searchHasMore, searchLoading])
+
+  const loadMore = useCallback(() => {
+    if (genreId) loadMoreGenre()
+    else if (searchQuery) loadMoreSearch()
+  }, [genreId, searchQuery, loadMoreGenre, loadMoreSearch])
+
+  useEffect(() => {
+    if ((!genreId && !searchQuery) || !sentinelRef.current) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) loadMore()
+      },
+      { rootMargin: '400px' }
+    )
+    observer.observe(sentinelRef.current)
+    return () => observer.disconnect()
+  }, [genreId, searchQuery, loadMore])
+
+  if (loading && !data) {
+    return (
+      <div className="page shows-page">
+        <HeroSkeleton />
+        <Section title="Popular shows">
+          <CardSkeleton count={8} />
+        </Section>
+      </div>
+    )
   }
+  if (error) return <div className="page shows-page"><ErrorState message={error} /></div>
 
-  function setPage(nextPage) {
-    const params = new URLSearchParams(searchParams)
-    params.set('page', String(nextPage))
-    setSearchParams(params)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
+  const showTrending = data?.shows?.trending_this_week?.results || []
+  const showPopular = data?.shows?.popular?.results || []
+  const showAiring = data?.shows?.airing_today?.results || []
+  const showTopRated = data?.shows?.top_rated?.results || []
+  const showGenres = data?.genres?.shows || []
 
-  if (error) return <ErrorState message={error} />
+  const isGenreView = !!genreId
+  const isSearchView = !!searchQuery
+  const isFilteredView = isGenreView || isSearchView
+
+  const heroItems = isSearchView
+    ? searchResults.slice(0, 3)
+    : isGenreView
+      ? genreResults.slice(0, 3)
+      : showTrending.length > 0 ? showTrending.slice(0, 3) : []
+
+  const activeGenreName = genreId && showGenres.length > 0
+    ? showGenres.find(g => String(g.id) === String(genreId))?.name || ''
+    : ''
+
+  const activeResults = isSearchView ? searchResults : genreResults
+  const activeLoading = isSearchView ? searchLoading : genreLoading
 
   return (
-    <div className="page">
-      <div className="page-head">
-        <div>
-          <h1>TV Shows</h1>
-          <p className="page-sub">Find every series, from premieres to classics.</p>
-        </div>
-      </div>
+    <div className="page shows-page">
+      <Hero items={heroItems} kind="show" />
 
-      <div className="filter-bar">
-        <div className="filter-group">
-          {categories.map((item) => (
-            <button
-              key={item.key}
-              className={`chip${category === item.key ? ' active' : ''}`}
-              onClick={() => setParam({ category: item.key, q: '', genre: '' })}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-        <div className="filter-row">
-          <div className="filter-group">
-            <select
-              className="select"
-              value={genre}
-              onChange={(event) => setParam({ genre: event.target.value, q: '' })}
-            >
-              <option value="">All genres</option>
-              {genres.map((item) => (
-                <option key={item.id} value={item.id}>{item.name}</option>
-              ))}
-            </select>
-            {category === 'trending' ? (
-              <div className="filter-group">
-                <button
-                  className={`chip${timeWindow === 'day' ? ' active' : ''}`}
-                  onClick={() => setParam({ time: 'day' })}
-                >
-                  Today
-                </button>
-                <button
-                  className={`chip${timeWindow === 'week' ? ' active' : ''}`}
-                  onClick={() => setParam({ time: 'week' })}
-                >
-                  This week
-                </button>
-              </div>
-            ) : null}
+      <ShowFilterBar genres={showGenres} />
+
+      {isFilteredView ? (
+        <Section
+          title={isSearchView ? `Results for "${searchQuery}"` : activeGenreName ? `${activeGenreName} shows` : 'Shows by genre'}
+          subtitle={isSearchView
+            ? (searchLoading ? 'Searching…' : `${searchResults.length} matches`)
+            : (activeGenreName ? `Showing all ${activeGenreName} shows` : '')
+          }
+        >
+          <div className="genre-results-grid">
+            {activeResults.map((item) => (
+              <MediaCard key={item.id} item={item} kind="show" to={`/shows/${item.id}`} />
+            ))}
           </div>
-          <form
-            className="inline-search"
-            onSubmit={(event) => {
-              event.preventDefault()
-              const form = new FormData(event.currentTarget)
-              const value = String(form.get('show-query') || '')
-              setParam({ q: value, genre: '' })
-            }}
+          {activeLoading && (
+            <div className="genre-loading">
+              <CardSkeleton count={8} />
+            </div>
+          )}
+          <div ref={sentinelRef} className="genre-sentinel" />
+          {!activeLoading && activeResults.length === 0 && (
+            <p className="genre-empty">{isSearchView ? 'No shows found.' : 'No shows found for this genre.'}</p>
+          )}
+        </Section>
+      ) : (
+        <>
+          <Section
+            title="Trending shows"
+            subtitle="What everyone's watching this week"
           >
-            <input name="show-query" placeholder="Search shows…" defaultValue={query} />
-            <button type="submit">Go</button>
-          </form>
-        </div>
-      </div>
-
-      <Section title={categoryLabel} subtitle={loading ? 'Loading…' : `${results.length} titles`}>
-        {loading ? (
-          <GridSkeleton count={12} />
-        ) : results.length === 0 ? (
-          <div className="state">
-            <div className="state-title">No shows found</div>
-            <p>Try a different category, genre, or search term.</p>
-          </div>
-        ) : (
-          <>
-            <div className="grid">
-              {results.map((item) => (
+            <MediaRail>
+              {showTrending.map((item) => (
                 <MediaCard key={item.id} item={item} kind="show" to={`/shows/${item.id}`} />
               ))}
-            </div>
-            <Pager page={page} totalPages={totalPages} onPage={setPage} />
-          </>
-        )}
-      </Section>
+            </MediaRail>
+          </Section>
+
+          <Section
+            title="Popular shows"
+            subtitle="Crowd favorites right now"
+          >
+            <MediaRail>
+              {showPopular.map((item) => (
+                <MediaCard key={item.id} item={item} kind="show" to={`/shows/${item.id}`} />
+              ))}
+            </MediaRail>
+          </Section>
+
+          <Section
+            title="Airing today"
+            subtitle="Fresh episodes dropping today"
+          >
+            <MediaRail>
+              {showAiring.map((item) => (
+                <MediaCard key={item.id} item={item} kind="show" to={`/shows/${item.id}`} />
+              ))}
+            </MediaRail>
+          </Section>
+
+          <Section
+            title="Top rated shows"
+            subtitle="Critics and fans agree"
+          >
+            <MediaRail>
+              {showTopRated.map((item) => (
+                <MediaCard key={item.id} item={item} kind="show" to={`/shows/${item.id}`} />
+              ))}
+            </MediaRail>
+          </Section>
+        </>
+      )}
     </div>
   )
 }

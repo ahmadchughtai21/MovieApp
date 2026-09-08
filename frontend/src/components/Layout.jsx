@@ -1,40 +1,44 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate, Link } from 'react-router-dom'
 import { useMemo } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useTVNavigation } from '../hooks/useTVNavigation'
 import SearchBar from './SearchBar'
 import Icon from './Icon'
 
 const navItems = [
-  { to: '/', label: 'Home' },
-  { to: '/movies', label: 'Movies' },
-  { to: '/shows', label: 'TV Shows' },
-  { to: '/genres', label: 'Genres' }
+  { to: '/', label: 'Home', icon: 'home' },
+  { to: '/movies', label: 'Movies', icon: 'film' },
+  { to: '/shows', label: 'TV Shows', icon: 'tv' },
+  { to: '/genres', label: 'Genres', icon: 'grid' },
 ]
 
 export default function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchValue, setSearchValue] = useState('')
+  const searchInputRef = useRef(null)
   const { user, logout } = useAuth()
+  const shellRef = useRef(null)
+  useTVNavigation(shellRef)
 
   const query = useMemo(() => {
     const params = new URLSearchParams(location.search)
     return params.get('q') || ''
   }, [location.search])
 
-  useEffect(() => {
-    setMenuOpen(false)
-  }, [location.pathname])
+  useEffect(() => { setMenuOpen(false); setSearchOpen(false); setSearchValue('') }, [location.pathname])
 
   useEffect(() => {
-    if (menuOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => { document.body.style.overflow = '' }
-  }, [menuOpen])
+    const el = document.querySelector('.main-content')
+    if (!el) return
+    function onScroll() { setScrolled(el.scrollTop > 40) }
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => el.removeEventListener('scroll', onScroll)
+  }, [])
 
   function handleSearch(value) {
     if (!value) return
@@ -43,130 +47,214 @@ export default function Layout() {
   }
 
   return (
-    <div className="app-shell">
-      <header className="topbar">
-        <NavLink to="/" className="brand" aria-label="Madflix home">
-          <span className="brand-mark">M</span>
-          <span className="brand-name">Madflix</span>
+    <div className="app-shell" ref={shellRef}>
+      {/* Floating navbar */}
+      <nav className={`floating-nav${scrolled ? ' scrolled' : ''}`}>
+        <NavLink to="/" className="fn-brand" aria-label="Madflix home">
+          <span className="fn-brand-mark">M</span>
         </NavLink>
 
-        <nav className="nav nav-desktop" aria-label="Primary">
+        <div className="fn-links">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.to === '/'}
-              className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+              className={({ isActive }) => `fn-link${isActive ? ' active' : ''}`}
             >
               {item.label}
             </NavLink>
           ))}
-        </nav>
+        </div>
 
-        <div className="topbar-right">
-          <div className="search-wrap search-desktop">
-            <SearchBar initialValue={query} onSubmit={handleSearch} />
+        <div className="fn-right">
+          <div className={`fn-search${searchOpen ? ' open' : ''}`}>
+            {searchOpen && (
+              <form
+                className="fn-search-form"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  const q = searchValue.trim()
+                  if (q) {
+                    navigate(`/search?q=${encodeURIComponent(q)}`)
+                    setSearchOpen(false)
+                    setSearchValue('')
+                  }
+                }}
+              >
+                <input
+                  ref={searchInputRef}
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  placeholder="Search..."
+                  aria-label="Search"
+                  type="search"
+                  autoFocus
+                />
+                <button type="submit" className="fn-search-submit">
+                  <Icon name="search" size={14} />
+                </button>
+              </form>
+            )}
+            <button
+              className="fn-icon"
+              title="Search"
+              onClick={() => {
+                setSearchOpen((v) => !v)
+                if (!searchOpen) {
+                  setTimeout(() => searchInputRef.current?.focus(), 100)
+                }
+              }}
+            >
+              <Icon name="search" size={16} />
+            </button>
           </div>
-
           {user ? (
-            <div className="user-menu-desktop">
+            <>
+              <NavLink to="/watchlist" className="fn-icon" title="Saved">
+                <Icon name="heart" size={16} />
+              </NavLink>
               {user.is_admin && (
-                <Link to="/admin" className="nav-link" title="Admin Dashboard">
-                  <Icon name="grid" size={18} />
-                </Link>
+                <NavLink to="/admin" className="fn-icon" title="Admin">
+                  <Icon name="shield" size={16} />
+                </NavLink>
               )}
-              <Link to="/watchlist" className="nav-link" title="My Watchlist">
-                <Icon name="heart" size={18} />
-              </Link>
-              <Link to="/history" className="nav-link" title="Watch History">
-                <Icon name="clock" size={18} />
-              </Link>
-              <div className="user-avatar-wrap" title={user.display_name || user.username}>
-                <div className="user-avatar">
-                  {(user.display_name || user.username || 'U')[0].toUpperCase()}
+              <div className="fn-avatar-wrap">
+                <div className="fn-avatar">
+                  <Icon name="user" size={16} />
+                </div>
+                <div className="fn-avatar-dropdown">
+                  <span className="fn-avatar-name">{user.username}</span>
+                  <button className="fn-avatar-logout" onClick={logout}>
+                    <Icon name="logOut" size={14} />
+                    Sign Out
+                  </button>
                 </div>
               </div>
-            </div>
+            </>
           ) : (
-            <div className="auth-buttons-desktop">
-              <Link to="/login" className="btn btn-ghost" style={{ padding: '7px 14px', fontSize: '0.8rem' }}>Sign In</Link>
-              <Link to="/register" className="btn btn-accent" style={{ padding: '7px 14px', fontSize: '0.8rem' }}>Sign Up</Link>
-            </div>
+            <Link to="/login" className="fn-login">Sign In</Link>
           )}
+        </div>
+      </nav>
 
+      {/* Mobile top bar */}
+      <header className="topbar-mobile">
+        <NavLink to="/" className="brand" aria-label="Madflix home">
+          <span className="brand-mark">M</span>
+          <span className="brand-name">Madflix</span>
+        </NavLink>
+        <div className="topbar-mobile-right">
           <button
             type="button"
             className="menu-toggle"
             aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-            aria-expanded={menuOpen}
             onClick={() => setMenuOpen((v) => !v)}
           >
-            <Icon name={menuOpen ? 'x' : 'menu'} size={20} />
+            <Icon name={menuOpen ? 'x' : 'menu'} size={18} />
           </button>
         </div>
       </header>
 
-      <div className={`mobile-panel${menuOpen ? ' open' : ''}`} aria-hidden={!menuOpen}>
+      {/* Mobile slide panel */}
+      {menuOpen && <div className="mobile-backdrop" onClick={() => setMenuOpen(false)} />}
+      <div className={`mobile-panel${menuOpen ? ' open' : ''}`}>
         <div className="mobile-panel-inner">
-          <div className="mobile-search">
-            <SearchBar initialValue={query} onSubmit={handleSearch} placeholder="Search movies, shows…" />
+          <div className="mobile-panel-header">
+            <span className="brand-mark">M</span>
+            <span className="brand-name">Madflix</span>
+            <button className="mobile-panel-close" onClick={() => setMenuOpen(false)} aria-label="Close menu">
+              <Icon name="x" size={20} />
+            </button>
           </div>
-          <nav className="nav nav-mobile" aria-label="Mobile">
+          <div className="mobile-search">
+            <SearchBar initialValue={query} onSubmit={handleSearch} placeholder="Search..." />
+          </div>
+          <nav className="nav-mobile">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 end={item.to === '/'}
-                className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+                className={({ isActive }) => `mobile-link${isActive ? ' active' : ''}`}
                 onClick={() => setMenuOpen(false)}
               >
+                <Icon name={item.icon} size={16} />
                 {item.label}
               </NavLink>
             ))}
             {user ? (
               <>
-                <NavLink to="/watchlist" className="nav-link" onClick={() => setMenuOpen(false)}>My Watchlist</NavLink>
-                <NavLink to="/history" className="nav-link" onClick={() => setMenuOpen(false)}>Watch History</NavLink>
+                <NavLink to="/watchlist" className="mobile-link" onClick={() => setMenuOpen(false)}>
+                  <Icon name="heart" size={16} /> Saved
+                </NavLink>
                 {user.is_admin && (
-                  <NavLink to="/admin" className="nav-link" onClick={() => setMenuOpen(false)}>Admin</NavLink>
+                  <NavLink to="/admin" className="mobile-link" onClick={() => setMenuOpen(false)}>
+                    <Icon name="shield" size={16} /> Admin
+                  </NavLink>
                 )}
-                <button className="nav-link" style={{ width: '100%', textAlign: 'left' }} onClick={() => { logout(); setMenuOpen(false) }}>
-                  Sign Out
+                <button className="mobile-link" onClick={() => { logout(); setMenuOpen(false) }}>
+                  <Icon name="logOut" size={16} /> Sign Out
                 </button>
               </>
             ) : (
               <>
-                <NavLink to="/login" className="nav-link" onClick={() => setMenuOpen(false)}>Sign In</NavLink>
-                <NavLink to="/register" className="nav-link" onClick={() => setMenuOpen(false)}>Sign Up</NavLink>
+                <NavLink to="/login" className="mobile-link" onClick={() => setMenuOpen(false)}>
+                  <Icon name="user" size={16} /> Sign In
+                </NavLink>
+                <NavLink to="/register" className="mobile-link" onClick={() => setMenuOpen(false)}>
+                  <Icon name="plus" size={16} /> Sign Up
+                </NavLink>
               </>
             )}
           </nav>
         </div>
       </div>
 
-      {menuOpen ? <div className="mobile-backdrop" onClick={() => setMenuOpen(false)} /> : null}
-
-      <main className="main">
-        <Outlet />
+      {/* Main content */}
+      <main className="main-content">
+        <div className="main-content-inner">
+          <Outlet />
+        </div>
+        <footer className="footer">
+          <div className="footer-left">
+            <span className="brand-mark" aria-hidden="true">M</span>
+            <span className="brand-name">Madflix</span>
+          </div>
+          <div className="footer-meta">
+            Data from <a href="https://www.themoviedb.org/" target="_blank" rel="noreferrer" className="footer-link">TMDB</a>
+          </div>
+          <a href="https://github.com/ahmadchughtai21" target="_blank" rel="noreferrer" className="footer-credit">
+            Made with <span className="footer-heart"><Icon name="heart" size={10} /></span> by Ahmad
+          </a>
+        </footer>
       </main>
 
-      <footer className="footer">
-        <div className="footer-left">
-          <span className="brand-mark" aria-hidden="true">M</span>
-          <span className="brand-name">Madflix</span>
-        </div>
-        <div className="footer-meta">
-          Data from <a href="https://www.themoviedb.org/" target="_blank" rel="noreferrer" className="footer-link">TMDB</a>.
-        </div>
-        <a
-          href="https://github.com/ahmadchughtai21"
-          target="_blank"
-          rel="noreferrer"
-          className="footer-credit"
-        >
-          Made with <span className="footer-heart" aria-hidden="true"><Icon name="heart" size={12} /></span> by Ahmad
-        </a>
-      </footer>
+      {/* Mobile bottom nav */}
+      <nav className="bottom-nav" aria-label="Bottom navigation">
+        {navItems.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.to === '/'}
+            className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}
+          >
+            <Icon name={item.icon} size={18} />
+            <span className="bottom-nav-label">{item.label}</span>
+          </NavLink>
+        ))}
+        {user ? (
+          <NavLink to="/watchlist" className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}>
+            <Icon name="heart" size={18} />
+            <span className="bottom-nav-label">Saved</span>
+          </NavLink>
+        ) : (
+          <NavLink to="/login" className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}>
+            <Icon name="user" size={18} />
+            <span className="bottom-nav-label">Sign In</span>
+          </NavLink>
+        )}
+      </nav>
     </div>
   )
 }

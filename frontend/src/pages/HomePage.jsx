@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { api } from '../lib/api'
+import { useAuth } from '../contexts/AuthContext'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 import Hero from '../components/Hero'
 import Section from '../components/Section'
@@ -8,10 +9,13 @@ import MediaCard from '../components/MediaCard'
 import ContinueWatching from '../components/ContinueWatching'
 import { HeroSkeleton, CardSkeleton } from '../components/Loading'
 import ErrorState from '../components/ErrorState'
+import RickrollAd from '../components/RickrollAd'
 
 export default function HomePage() {
   useDocumentTitle(null)
+  const { user } = useAuth()
   const [data, setData] = useState(null)
+  const [watchlist, setWatchlist] = useState([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
 
@@ -31,10 +35,17 @@ export default function HomePage() {
       .finally(() => {
         if (active) setLoading(false)
       })
-    return () => {
-      active = false
-    }
+    return () => { active = false }
   }, [])
+
+  useEffect(() => {
+    if (!user) return
+    let active = true
+    api.watchlist()
+      .then((items) => { if (active) setWatchlist(items) })
+      .catch(() => {})
+    return () => { active = false }
+  }, [user])
 
   if (loading) {
     return (
@@ -61,16 +72,18 @@ export default function HomePage() {
   const showOnAir = data?.shows?.on_the_air?.results || []
   const showTopRated = data?.shows?.top_rated?.results || []
 
-  const heroItem = movieTrending[0] || showTrending[0]
-  const heroKind = movieTrending[0] ? 'movie' : 'show'
+  const heroItems = movieTrending.length > 0 ? movieTrending.slice(0, 5) : showTrending.slice(0, 5)
+  const heroKind = movieTrending.length > 0 ? 'movie' : 'show'
 
   const movieGenres = data?.genres?.movies || []
   const showGenres = data?.genres?.shows || []
 
   return (
-    <div className="page">
+    <div className="page home-page">
+      <RickrollAd />
+      <Hero items={heroItems} kind={heroKind} />
+
       <ContinueWatching />
-      <Hero item={heroItem} kind={heroKind} />
 
       <Section
         title="Trending movies"
@@ -95,6 +108,25 @@ export default function HomePage() {
           ))}
         </MediaRail>
       </Section>
+
+      {watchlist.length > 0 && (
+        <Section
+          title="Your watchlist"
+          subtitle="Saved for later"
+          action="/watchlist"
+        >
+          <MediaRail>
+            {watchlist.map((item) => (
+              <MediaCard
+                key={`${item.tmdb_id}-${item.media_type}`}
+                item={{ id: item.tmdb_id, title: item.title, poster_path: item.poster_path, media_type: item.media_type === 'tv' ? 'tv' : 'movie' }}
+                kind={item.media_type === 'tv' ? 'show' : 'movie'}
+                to={item.media_type === 'tv' ? `/shows/${item.tmdb_id}` : `/movies/${item.tmdb_id}`}
+              />
+            ))}
+          </MediaRail>
+        </Section>
+      )}
 
       <Section
         title="Trending shows"
