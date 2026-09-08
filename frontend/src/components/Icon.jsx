@@ -38,9 +38,10 @@ const PATHS = {
   ),
   film: (
     <>
-      <path d="M7 3h14a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H7l-5-9V4a1 1 0 0 1 1-1z" />
-      <path d="M10 3v4l2.5-1.5L15 7V3" />
-      <path d="M10 13h8M10 17h5" />
+      <rect x="3" y="7" width="18" height="14" rx="1.5" />
+      <path d="M3 11h18" />
+      <path d="M8 7V4.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5V7" />
+      <path d="M8 4.5l2 2.5M12 4.5l2 2.5M16 4.5l1 2.5" />
     </>
   ),
   home: (
