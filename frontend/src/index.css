@@ -2075,7 +2075,10 @@ p { margin: 0; }
   .md-player-section { padding: 0 16px; margin-top: -28px; }
   .md-section { padding: 20px 16px 0; }
   .md-section-title { font-size: 1.1rem; }
-  .md-ep-picker { flex-direction: column; }
+  .md-ep-picker { flex-direction: column; gap: 10px; }
+  .md-ep-field { min-width: 100%; flex: auto; }
+  .md-ep-nav { gap: 8px; }
+  .md-ep-btn { flex: 1; justify-content: center; }
   .media-card { width: clamp(120px, 28vw, 150px); }
   .media-card:hover { transform: translateY(-2px) scale(1.01); }
   .grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
@@ -2150,7 +2153,13 @@ p { margin: 0; }
   .md-section { padding: 16px 12px 0; }
   .md-section-title { font-size: 1rem; margin-bottom: 12px; }
   .md-ep-picker { gap: 10px; }
-  .md-ep-btn { padding: 8px 14px; font-size: 0.78rem; }
+  .md-ep-field { min-width: 100%; flex: auto; }
+  .md-ep-field select { padding: 8px 10px; font-size: 0.82rem; }
+  .md-ep-btn { padding: 8px 10px; font-size: 0.75rem; gap: 4px; flex: 1; justify-content: center; }
+  .md-ep-card { padding: 14px; }
+  .md-ep-card-title { font-size: 0.88rem; }
+  .md-ep-card-meta { font-size: 0.75rem; gap: 10px; }
+  .md-ep-card-desc { font-size: 0.82rem; }
   .media-card { width: clamp(100px, 30vw, 130px); }
   .media-card:hover { transform: none; }
   .grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
