@@ -25,6 +25,7 @@ export default function ShowDetailsPage() {
   const [state, setState] = useState({ loading: true, error: null, data: null })
   const [seasonData, setSeasonData] = useState(null)
   const [episodeData, setEpisodeData] = useState(null)
+  const [recs, setRecs] = useState([])
 
   useEffect(() => {
     let active = true
@@ -48,6 +49,14 @@ export default function ShowDetailsPage() {
     api.episodeDetails(id, season, episode).then(setEpisodeData).catch(() => {})
   }, [id, season, episode])
 
+  useEffect(() => {
+    let active = true
+    api.showRecommendations(id)
+      .then((data) => { if (active) setRecs(data.results || []) })
+      .catch(() => {})
+    return () => { active = false }
+  }, [id])
+
   const details = state.data?.show_details
   useDocumentTitle(details?.name)
 
@@ -62,7 +71,7 @@ export default function ShowDetailsPage() {
 
   const credits = state.data?.credits
   const videos = state.data?.videos?.results || []
-  const similar = state.data?.similar_shows?.results || []
+  const similar = recs.length > 0 ? recs : (state.data?.similar_shows?.results || [])
   const seasons = state.data?.seasons_data || []
   const nav = state.data?.navigation_info
 

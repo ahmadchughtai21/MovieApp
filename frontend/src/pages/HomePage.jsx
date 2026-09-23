@@ -7,6 +7,7 @@ import Section from '../components/Section'
 import MediaRail from '../components/MediaRail'
 import MediaCard from '../components/MediaCard'
 import ContinueWatching from '../components/ContinueWatching'
+import RecommendedForYou from '../components/RecommendedForYou'
 import { HeroSkeleton, CardSkeleton } from '../components/Loading'
 import ErrorState from '../components/ErrorState'
 import RickrollAd from '../components/RickrollAd'
@@ -84,6 +85,8 @@ export default function HomePage() {
       <Hero items={heroItems} kind={heroKind} />
 
       <ContinueWatching />
+
+      <RecommendedForYou />
 
       <Section
         title="Trending movies"

@@ -21,6 +21,7 @@ export default function MovieDetailsPage() {
   const { id } = useParams()
   const config = useImageConfig()
   const [state, setState] = useState({ loading: true, error: null, data: null })
+  const [recs, setRecs] = useState([])
 
   useEffect(() => {
     let active = true
@@ -28,6 +29,14 @@ export default function MovieDetailsPage() {
     api.movieDetails(id)
       .then((data) => { if (active) setState({ loading: false, error: null, data }) })
       .catch((error) => { if (active) setState({ loading: false, error: error.message, data: null }) })
+    return () => { active = false }
+  }, [id])
+
+  useEffect(() => {
+    let active = true
+    api.movieRecommendations(id)
+      .then((data) => { if (active) setRecs(data.results || []) })
+      .catch(() => {})
     return () => { active = false }
   }, [id])
 
@@ -45,7 +54,7 @@ export default function MovieDetailsPage() {
 
   const credits = state.data?.credits
   const videos = state.data?.videos?.results || []
-  const similar = state.data?.similar_movies?.results || []
+  const similar = recs.length > 0 ? recs : (state.data?.similar_movies?.results || [])
 
   const backdrop = buildImageUrl(config, details.backdrop_path, 'backdrop', 'original')
   const poster = buildImageUrl(config, details.poster_path, 'poster', 'w500')

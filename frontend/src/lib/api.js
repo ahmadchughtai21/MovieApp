@@ -141,4 +141,8 @@ export const api = {
   adminBannedIps: () => fetchJson('/admin/banned-ips/'),
   adminBanIp: (ipAddress, reason) => fetchPost('/admin/ban-ip/', { ip_address: ipAddress, reason }),
   adminUnbanIp: (banId) => fetchDelete(`/admin/unban-ip/${banId}/`),
+
+  recommendations: () => fetchJson('/recommendations/'),
+  movieRecommendations: (movieId) => fetchJson(`/recommendations/for-movie/${movieId}/`),
+  showRecommendations: (showId) => fetchJson(`/recommendations/for-show/${showId}/`),
 }

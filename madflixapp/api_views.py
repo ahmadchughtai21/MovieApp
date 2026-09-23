@@ -1083,3 +1083,164 @@ def api_endpoints_list(request):
     }
 
     return Response(endpoints, status=status.HTTP_200_OK)
+
+
+# =============================================================================
+# RECOMMENDATIONS ENDPOINTS
+# =============================================================================
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def api_recommendations(request):
+    """
+    Get personalized recommendations based on user's watch history.
+    For logged-in users: fetches recommendations from their recently watched movies/shows.
+    For logged-out users: falls back to trending + popular.
+    """
+    try:
+        user = request.user
+        source_ids = []
+
+        if user.is_authenticated:
+            from django.utils import timezone
+            from datetime import timedelta
+            from .models import WatchHistory, Watchlist
+
+            cutoff = timezone.now() - timedelta(days=60)
+
+            # Get recent movie IDs from watch history
+            recent_movies = list(
+                WatchHistory.objects.filter(
+                    user=user, media_type='movie', timestamp__gte=cutoff
+                ).values_list('tmdb_id', flat=True).distinct()[:8]
+            )
+
+            # Get recent show IDs
+            recent_shows = list(
+                WatchHistory.objects.filter(
+                    user=user, media_type='tv', timestamp__gte=cutoff
+                ).values_list('tmdb_id', flat=True).distinct()[:5]
+            )
+
+            # Get watchlist IDs to exclude
+            watchlist_ids = set(
+                Watchlist.objects.filter(user=user).values_list('tmdb_id', flat=True)
+            )
+
+            # Get watched IDs to exclude
+            watched_ids = set(
+                WatchHistory.objects.filter(user=user, completed=True).values_list('tmdb_id', flat=True)
+            )
+
+            exclude_ids = watchlist_ids | watched_ids
+
+            # Fetch recommendations in parallel for recent movies
+            movie_recs = {}
+            with ThreadPoolExecutor(max_workers=6) as executor:
+                future_to_id = {
+                    executor.submit(make_tmdb_request, f'/movie/{mid}/recommendations'): mid
+                    for mid in recent_movies
+                }
+                for future in as_completed(future_to_id):
+                    mid = future_to_id[future]
+                    try:
+                        result = future.result()
+                        for rec in (result.get('results') or [])[:10]:
+                            rid = rec.get('id')
+                            if rid and rid not in exclude_ids:
+                                if rid not in movie_recs:
+                                    movie_recs[rid] = {**rec, 'rec_count': 0, 'source_type': 'movie'}
+                                movie_recs[rid]['rec_count'] += 1
+                    except Exception:
+                        pass
+
+            # Fetch recommendations for recent shows
+            show_recs = {}
+            with ThreadPoolExecutor(max_workers=4) as executor:
+                future_to_id = {
+                    executor.submit(make_tmdb_request, f'/tv/{sid}/recommendations'): sid
+                    for sid in recent_shows
+                }
+                for future in as_completed(future_to_id):
+                    sid = future_to_id[future]
+                    try:
+                        result = future.result()
+                        for rec in (result.get('results') or [])[:10]:
+                            rid = rec.get('id')
+                            if rid and rid not in exclude_ids:
+                                if rid not in show_recs:
+                                    show_recs[rid] = {**rec, 'rec_count': 0, 'source_type': 'tv'}
+                                show_recs[rid]['rec_count'] += 1
+                    except Exception:
+                        pass
+
+            # Merge and sort by relevance
+            all_recs = {**movie_recs, **show_recs}
+            rec_list = sorted(
+                all_recs.values(),
+                key=lambda x: (x['rec_count'], x.get('vote_average', 0) or 0),
+                reverse=True
+            )
+
+            # If we have enough personalized recs, return them
+            if len(rec_list) >= 10:
+                return Response({
+                    'results': rec_list[:40],
+                    'source': 'personalized',
+                    'total': len(rec_list),
+                }, status=status.HTTP_200_OK)
+
+        # Fallback: trending + popular for logged-out users or insufficient history
+        trending = make_tmdb_request('/trending/movie/week')
+        popular = make_tmdb_request('/movie/popular')
+
+        fallback = []
+        seen = set()
+        for item in (trending.get('results') or [])[:20]:
+            if item.get('id') not in seen:
+                fallback.append(item)
+                seen.add(item['id'])
+        for item in (popular.get('results') or [])[:20]:
+            if item.get('id') not in seen:
+                fallback.append(item)
+                seen.add(item['id'])
+
+        return Response({
+            'results': fallback[:40],
+            'source': 'trending',
+            'total': len(fallback),
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response(
+            {"error": "Failed to fetch recommendations", "details": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def api_movie_recommendations(request, movie_id):
+    """Get TMDB recommendations for a specific movie."""
+    try:
+        data = make_tmdb_request(f'/movie/{movie_id}/recommendations')
+        return Response(data, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response(
+            {"error": "Failed to fetch movie recommendations", "details": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def api_show_recommendations(request, show_id):
+    """Get TMDB recommendations for a specific TV show."""
+    try:
+        data = make_tmdb_request(f'/tv/{show_id}/recommendations')
+        return Response(data, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response(
+            {"error": "Failed to fetch show recommendations", "details": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

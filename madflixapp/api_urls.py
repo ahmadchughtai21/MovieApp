@@ -105,4 +105,11 @@ urlpatterns = [
     path('admin/banned-ips/', admin_views.admin_banned_ips, name='admin-banned-ips'),
     path('admin/ban-ip/', admin_views.admin_ban_ip, name='admin-ban-ip'),
     path('admin/unban-ip/<int:ban_id>/', admin_views.admin_unban_ip, name='admin-unban-ip'),
+
+    # =============================================================================
+    # RECOMMENDATIONS ENDPOINTS
+    # =============================================================================
+    path('recommendations/', api_views.api_recommendations, name='api-recommendations'),
+    path('recommendations/for-movie/<int:movie_id>/', api_views.api_movie_recommendations, name='api-movie-recommendations'),
+    path('recommendations/for-show/<int:show_id>/', api_views.api_show_recommendations, name='api-show-recommendations'),
 ]
