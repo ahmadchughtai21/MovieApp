@@ -3,6 +3,7 @@ from . import api_views
 from . import auth_views
 from . import user_views
 from . import admin_views
+from . import clip_views
 
 # API URL patterns - organized by functionality
 urlpatterns = [
@@ -105,6 +106,11 @@ urlpatterns = [
     path('admin/banned-ips/', admin_views.admin_banned_ips, name='admin-banned-ips'),
     path('admin/ban-ip/', admin_views.admin_ban_ip, name='admin-ban-ip'),
     path('admin/unban-ip/<int:ban_id>/', admin_views.admin_unban_ip, name='admin-unban-ip'),
+    path('admin/moderation/', admin_views.admin_moderation, name='admin-moderation'),
+    path('admin/reports/<int:report_id>/resolve/', admin_views.admin_report_resolve, name='admin-report-resolve'),
+    path('admin/clips/<int:clip_id>/', admin_views.admin_delete_clip, name='admin-clip-delete'),
+    path('admin/comments/<int:comment_id>/', admin_views.admin_delete_comment, name='admin-comment-delete'),
+    path('admin/replies/<int:reply_id>/', admin_views.admin_delete_reply, name='admin-reply-delete'),
 
     # =============================================================================
     # RECOMMENDATIONS ENDPOINTS
@@ -112,4 +118,48 @@ urlpatterns = [
     path('recommendations/', api_views.api_recommendations, name='api-recommendations'),
     path('recommendations/for-movie/<int:movie_id>/', api_views.api_movie_recommendations, name='api-movie-recommendations'),
     path('recommendations/for-show/<int:show_id>/', api_views.api_show_recommendations, name='api-show-recommendations'),
+
+    # =============================================================================
+    # MOVIE LOGS (Rating + Watch tracking)
+    # =============================================================================
+    path('logs/', user_views.log_list, name='log-list'),
+    path('logs/add/', user_views.log_create, name='log-create'),
+    path('logs/<int:log_id>/', user_views.log_delete, name='log-delete'),
+    path('logs/for-movie/<int:tmdb_id>/', user_views.log_for_movie, name='log-for-movie'),
+    path('logs/for-user/<str:username>/', user_views.log_for_user, name='log-for-user'),
+    path('logs/stats/<int:tmdb_id>/', user_views.log_stats, name='log-stats'),
+    path('logs/<int:log_id>/like/', user_views.like_toggle, name='log-like-toggle'),
+    path('logs/<int:log_id>/replies/', user_views.review_replies, name='review-replies'),
+    path('logs/<int:log_id>/replies/create/', user_views.review_reply_create, name='review-reply-create'),
+    path('logs/<int:log_id>/replies/<int:reply_id>/delete/', user_views.review_reply_delete, name='review-reply-delete'),
+    path('logs/<int:log_id>/replies/<int:reply_id>/like/', user_views.review_reply_like_toggle, name='review-reply-like'),
+
+    # =============================================================================
+    # PUBLIC PROFILES
+    # =============================================================================
+    path('profile/<str:username>/', user_views.public_profile, name='public-profile'),
+    path('profile/<str:username>/followers/', user_views.profile_followers, name='profile-followers'),
+    path('profile/<str:username>/following/', user_views.profile_following, name='profile-following'),
+
+    # =============================================================================
+    # SOCIAL: FOLLOWS + FEED
+    # =============================================================================
+    path('follow/<str:username>/', user_views.follow_toggle, name='follow-toggle'),
+    path('feed/', user_views.feed, name='feed'),
+    path('users/suggested/', user_views.suggested_users, name='suggested-users'),
+    path('users/search/', user_views.search_users, name='user-search'),
+
+    # =============================================================================
+    # CLIPS ENDPOINTS
+    # =============================================================================
+    path('clips/', clip_views.clip_list, name='clip-list'),
+    path('clips/create/', clip_views.clip_create, name='clip-create'),
+    path('clips/<int:clip_id>/', clip_views.clip_detail, name='clip-detail'),
+    path('clips/<int:clip_id>/delete/', clip_views.clip_delete, name='clip-delete'),
+    path('clips/<int:clip_id>/update/', clip_views.clip_update, name='clip-update'),
+    path('clips/<int:clip_id>/like/', clip_views.clip_like_toggle, name='clip-like-toggle'),
+    path('clips/<int:clip_id>/comments/', clip_views.clip_comments, name='clip-comments'),
+    path('clips/<int:clip_id>/comments/create/', clip_views.clip_comment_create, name='clip-comment-create'),
+    path('clips/<int:clip_id>/comments/<int:comment_id>/delete/', clip_views.clip_comment_delete, name='clip-comment-delete'),
+    path('clips/<int:clip_id>/report/', clip_views.clip_report, name='clip-report'),
 ]

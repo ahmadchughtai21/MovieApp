@@ -68,6 +68,18 @@ async function fetchPut(path, body) {
   return res.json()
 }
 
+async function fetchMultipart(path, formData) {
+  const token = getToken()
+  const headers = {}
+  if (token) headers['Authorization'] = `Token ${token}`
+  const res = await fetch(buildUrl(path), { method: 'POST', headers, body: formData })
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(text || `Request failed: ${res.status}`)
+  }
+  return res.json()
+}
+
 export const api = {
   home: () => fetchJson('/home/'),
   config: () => fetchJson('/config/'),
@@ -141,8 +153,50 @@ export const api = {
   adminBannedIps: () => fetchJson('/admin/banned-ips/'),
   adminBanIp: (ipAddress, reason) => fetchPost('/admin/ban-ip/', { ip_address: ipAddress, reason }),
   adminUnbanIp: (banId) => fetchDelete(`/admin/unban-ip/${banId}/`),
+  adminModeration: () => fetchJson('/admin/moderation/'),
+  adminReportResolve: (reportId, resolved) => fetchPost(`/admin/reports/${reportId}/resolve/`, { resolved }),
+  adminDeleteClip: (clipId) => fetchDelete(`/admin/clips/${clipId}/`),
+  adminDeleteComment: (commentId) => fetchDelete(`/admin/comments/${commentId}/`),
+  adminDeleteReply: (replyId) => fetchDelete(`/admin/replies/${replyId}/`),
 
   recommendations: () => fetchJson('/recommendations/'),
   movieRecommendations: (movieId) => fetchJson(`/recommendations/for-movie/${movieId}/`),
   showRecommendations: (showId) => fetchJson(`/recommendations/for-show/${showId}/`),
+
+  // Logs
+  logList: (mediaType) => fetchJson(`/logs/${mediaType ? `?media_type=${mediaType}` : ''}`),
+  logAdd: (data) => fetchPost('/logs/add/', data),
+  logDelete: (logId) => fetchDelete(`/logs/${logId}/`),
+  logForMovie: (tmdbId, mediaType) => fetchJson(`/logs/for-movie/${tmdbId}/`, mediaType ? { media_type: mediaType } : undefined),
+  logForUser: (username) => fetchJson(`/logs/for-user/${username}/`),
+  logStats: (tmdbId) => fetchJson(`/logs/stats/${tmdbId}/`),
+  logToggleLike: (logId) => fetchPost(`/logs/${logId}/like/`, {}),
+  reviewReplies: (logId) => fetchJson(`/logs/${logId}/replies/`),
+  reviewReplyCreate: (logId, body) => fetchPost(`/logs/${logId}/replies/create/`, { body }),
+  reviewReplyDelete: (logId, replyId) => fetchDelete(`/logs/${logId}/replies/${replyId}/delete/`),
+  reviewReplyToggleLike: (logId, replyId) => fetchPost(`/logs/${logId}/replies/${replyId}/like/`, {}),
+
+  // Profiles
+  publicProfile: (username) => fetchJson(`/profile/${username}/`),
+  profileFollowers: (username) => fetchJson(`/profile/${username}/followers/`),
+  profileFollowing: (username) => fetchJson(`/profile/${username}/following/`),
+  updateProfile: (data) => fetchPut('/auth/profile/', data),
+
+  // Social
+  followToggle: (username) => fetchPost(`/follow/${username}/`, {}),
+  feed: (scope = 'friends') => fetchJson('/feed/', { scope }),
+  suggestedUsers: () => fetchJson('/users/suggested/'),
+  userSearch: (query) => fetchJson('/users/search/', { query }),
+
+  // Clips
+  clips: (params = {}) => fetchJson('/clips/', params),
+  clipCreate: (formData) => fetchMultipart('/clips/create/', formData),
+  clipDetail: (clipId) => fetchJson(`/clips/${clipId}/`),
+  clipDelete: (clipId) => fetchDelete(`/clips/${clipId}/delete/`),
+  clipUpdate: (clipId, data) => fetchPost(`/clips/${clipId}/update/`, data),
+  clipLikeToggle: (clipId) => fetchPost(`/clips/${clipId}/like/`, {}),
+  clipComments: (clipId) => fetchJson(`/clips/${clipId}/comments/`),
+  clipCommentCreate: (clipId, body) => fetchPost(`/clips/${clipId}/comments/create/`, { body }),
+  clipCommentDelete: (clipId, commentId) => fetchDelete(`/clips/${clipId}/comments/${commentId}/delete/`),
+  clipReport: (clipId, data) => fetchPost(`/clips/${clipId}/report/`, data),
 }

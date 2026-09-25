@@ -21,7 +21,7 @@ function ProviderButton({ provider }) {
         <img
           className="provider-logo"
           src={provider.logo_path}
-          alt=""
+          alt={provider.name}
           loading="lazy"
           referrerPolicy="no-referrer"
         />
@@ -68,21 +68,22 @@ export default function WhereToWatch({ kind, id, title }) {
   return (
     <div className="where-to-watch">
       <div className="where-to-watch-head">
-        <Icon name="play" size={12} />
-        <span>Where to watch</span>
+        <span className="where-to-watch-label">Where to watch</span>
       </div>
-      {Object.entries(categories).map(([key, items]) =>
-        items.length ? (
-          <div key={key} className="where-to-watch-row">
-            <span className="where-to-watch-label">{CATEGORY_LABELS[key]}</span>
-            <div className="where-to-watch-list">
-              {items.map((provider) => (
-                <ProviderButton key={`${key}-${provider.provider_id}`} provider={provider} />
-              ))}
+      <div className="where-to-watch-body">
+        {Object.entries(categories).map(([key, items]) =>
+          items.length ? (
+            <div key={key} className="where-to-watch-row">
+              <span className="where-to-watch-cat">{CATEGORY_LABELS[key]}</span>
+              <div className="where-to-watch-list">
+                {items.map((provider) => (
+                  <ProviderButton key={`${key}-${provider.provider_id}`} provider={provider} />
+                ))}
+              </div>
             </div>
-          </div>
-        ) : null
-      )}
+          ) : null
+        )}
+      </div>
     </div>
   )
 }

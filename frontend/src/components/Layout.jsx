@@ -1,50 +1,40 @@
 import { useEffect, useState, useRef } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate, Link } from 'react-router-dom'
-import { useMemo } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useTVNavigation } from '../hooks/useTVNavigation'
-import SearchBar from './SearchBar'
 import Icon from './Icon'
 
 const navItems = [
-  { to: '/', label: 'Home', icon: 'home' },
-  { to: '/movies', label: 'Movies', icon: 'film' },
-  { to: '/shows', label: 'TV Shows', icon: 'tv' },
-  { to: '/genres', label: 'Genres', icon: 'grid' },
+  { to: '/', label: 'Feed', icon: 'users' },
+  { to: '/discover', label: 'Discover', icon: 'film' },
+  { to: '/clips', label: 'Clips', icon: 'clapper' },
+  { to: '/diary', label: 'Diary', icon: 'journal' },
+  { to: '/watchlist', label: 'Watchlist', icon: 'heart' },
 ]
 
 export default function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
-  const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchValue, setSearchValue] = useState('')
   const searchInputRef = useRef(null)
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const shellRef = useRef(null)
   useTVNavigation(shellRef)
 
-  const query = useMemo(() => {
-    const params = new URLSearchParams(location.search)
-    return params.get('q') || ''
-  }, [location.search])
-
-  useEffect(() => { setMenuOpen(false); setSearchOpen(false); setSearchValue('') }, [location.pathname])
+  useEffect(() => { setSearchOpen(false); setSearchValue('') }, [location.pathname])
 
   useEffect(() => {
-    const el = document.querySelector('.main-content')
-    if (!el) return
-    function onScroll() { setScrolled(el.scrollTop > 40) }
-    el.addEventListener('scroll', onScroll, { passive: true })
-    return () => el.removeEventListener('scroll', onScroll)
+    function onScroll() { setScrolled(window.scrollY > 40) }
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  function handleSearch(value) {
-    if (!value) return
-    setMenuOpen(false)
-    navigate(`/search?q=${encodeURIComponent(value)}`)
-  }
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' in window ? 'instant' : 'auto' })
+  }, [location.pathname])
 
   return (
     <div className="app-shell" ref={shellRef}>
@@ -111,26 +101,23 @@ export default function Layout() {
           </div>
           {user ? (
             <>
-              <NavLink to="/watchlist" className="fn-icon" title="Saved">
-                <Icon name="heart" size={16} />
-              </NavLink>
               {user.is_admin && (
                 <NavLink to="/admin" className="fn-icon" title="Admin">
                   <Icon name="shield" size={16} />
                 </NavLink>
               )}
-              <div className="fn-avatar-wrap">
-                <div className="fn-avatar">
+              <NavLink
+                to={`/user/${user.username}`}
+                className="fn-avatar"
+                title="My Profile"
+                aria-label="My Profile"
+              >
+                {user.avatar_url ? (
+                  <img src={user.avatar_url} alt="" width="16" height="16" style={{ borderRadius: '99px', objectFit: 'cover' }} />
+                ) : (
                   <Icon name="user" size={16} />
-                </div>
-                <div className="fn-avatar-dropdown">
-                  <span className="fn-avatar-name">{user.username}</span>
-                  <button className="fn-avatar-logout" onClick={logout}>
-                    <Icon name="logOut" size={14} />
-                    Sign Out
-                  </button>
-                </div>
-              </div>
+                )}
+              </NavLink>
             </>
           ) : (
             <Link to="/login" className="fn-login">Sign In</Link>
@@ -139,77 +126,60 @@ export default function Layout() {
       </nav>
 
       {/* Mobile top bar */}
-      <header className="topbar-mobile">
+      <header className={`topbar-mobile${scrolled ? ' scrolled' : ''}${searchOpen ? ' searching' : ''}`}>
         <NavLink to="/" className="brand" aria-label="Madflix home">
           <span className="brand-mark">M</span>
           <span className="brand-name">Madflix</span>
         </NavLink>
         <div className="topbar-mobile-right">
-          <button
-            type="button"
-            className="menu-toggle"
-            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-            onClick={() => setMenuOpen((v) => !v)}
-          >
-            <Icon name={menuOpen ? 'x' : 'menu'} size={18} />
-          </button>
+          <div className={`topbar-search${searchOpen ? ' open' : ''}`}>
+            {searchOpen && (
+              <form
+                className="topbar-search-form"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  const q = searchValue.trim()
+                  if (q) {
+                    navigate(`/search?q=${encodeURIComponent(q)}`)
+                    setSearchOpen(false)
+                    setSearchValue('')
+                  }
+                }}
+              >
+                <input
+                  ref={searchInputRef}
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  placeholder="Search..."
+                  aria-label="Search"
+                  type="search"
+                  autoFocus
+                />
+                <button type="submit" className="topbar-search-submit">
+                  <Icon name="search" size={14} />
+                </button>
+              </form>
+            )}
+            {!searchOpen && (
+              <button
+                className="topbar-icon-btn"
+                title="Search"
+                onClick={() => {
+                  setSearchOpen((v) => !v)
+                  if (!searchOpen) {
+                    setTimeout(() => searchInputRef.current?.focus(), 100)
+                  }
+                }}
+              >
+                <Icon name="search" size={16} />
+              </button>
+            )}
+          </div>
+          {!user && (
+            <Link to="/login" className="btn btn--accent btn--sm">Sign In</Link>
+          )}
         </div>
       </header>
-
-      {/* Mobile slide panel */}
-      {menuOpen && <div className="mobile-backdrop" onClick={() => setMenuOpen(false)} />}
-      <div className={`mobile-panel${menuOpen ? ' open' : ''}`}>
-        <div className="mobile-panel-inner">
-          <div className="mobile-panel-header">
-            <span className="brand-mark">M</span>
-            <span className="brand-name">Madflix</span>
-            <button className="mobile-panel-close" onClick={() => setMenuOpen(false)} aria-label="Close menu">
-              <Icon name="x" size={20} />
-            </button>
-          </div>
-          <div className="mobile-search">
-            <SearchBar initialValue={query} onSubmit={handleSearch} placeholder="Search..." />
-          </div>
-          <nav className="nav-mobile">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === '/'}
-                className={({ isActive }) => `mobile-link${isActive ? ' active' : ''}`}
-                onClick={() => setMenuOpen(false)}
-              >
-                <Icon name={item.icon} size={16} />
-                {item.label}
-              </NavLink>
-            ))}
-            {user ? (
-              <>
-                <NavLink to="/watchlist" className="mobile-link" onClick={() => setMenuOpen(false)}>
-                  <Icon name="heart" size={16} /> Saved
-                </NavLink>
-                {user.is_admin && (
-                  <NavLink to="/admin" className="mobile-link" onClick={() => setMenuOpen(false)}>
-                    <Icon name="shield" size={16} /> Admin
-                  </NavLink>
-                )}
-                <button className="mobile-link" onClick={() => { logout(); setMenuOpen(false) }}>
-                  <Icon name="logOut" size={16} /> Sign Out
-                </button>
-              </>
-            ) : (
-              <>
-                <NavLink to="/login" className="mobile-link" onClick={() => setMenuOpen(false)}>
-                  <Icon name="user" size={16} /> Sign In
-                </NavLink>
-                <NavLink to="/register" className="mobile-link" onClick={() => setMenuOpen(false)}>
-                  <Icon name="plus" size={16} /> Sign Up
-                </NavLink>
-              </>
-            )}
-          </nav>
-        </div>
-      </div>
 
       {/* Main content */}
       <main className="main-content">
@@ -217,16 +187,18 @@ export default function Layout() {
           <Outlet />
         </div>
         <footer className="footer">
-          <div className="footer-left">
-            <span className="brand-mark" aria-hidden="true">M</span>
-            <span className="brand-name">Madflix</span>
+          <div className="footer-inner">
+            <div className="footer-left">
+              <span className="brand-mark" aria-hidden="true">M</span>
+              <span className="brand-name">Madflix</span>
+            </div>
+            <div className="footer-meta">
+              Data from <a href="https://www.themoviedb.org/" target="_blank" rel="noreferrer" className="footer-link">TMDB</a>
+            </div>
+            <a href="https://github.com/ahmadchughtai21" target="_blank" rel="noreferrer" className="footer-credit">
+              Made with <span className="footer-heart"><Icon name="heart" size={10} /></span> by Ahmad
+            </a>
           </div>
-          <div className="footer-meta">
-            Data from <a href="https://www.themoviedb.org/" target="_blank" rel="noreferrer" className="footer-link">TMDB</a>
-          </div>
-          <a href="https://github.com/ahmadchughtai21" target="_blank" rel="noreferrer" className="footer-credit">
-            Made with <span className="footer-heart"><Icon name="heart" size={10} /></span> by Ahmad
-          </a>
         </footer>
       </main>
 
@@ -244,9 +216,9 @@ export default function Layout() {
           </NavLink>
         ))}
         {user ? (
-          <NavLink to="/watchlist" className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}>
-            <Icon name="heart" size={18} />
-            <span className="bottom-nav-label">Saved</span>
+          <NavLink to={`/user/${user.username}`} className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}>
+            <Icon name="user" size={18} />
+            <span className="bottom-nav-label">Profile</span>
           </NavLink>
         ) : (
           <NavLink to="/login" className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}>

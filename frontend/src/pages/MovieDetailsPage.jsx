@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 import { useParams, Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import { buildImageUrl } from '../lib/image'
 import { useImageConfig } from '../lib/imageConfig'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
-import { formatDate, formatRuntime, compactNumber } from '../lib/format'
+import { formatRuntime, compactNumber, formatMoney, formatLanguage } from '../lib/format'
 import MediaCard from '../components/MediaCard'
 import MediaRail from '../components/MediaRail'
 import CastList from '../components/CastList'
@@ -15,13 +16,37 @@ import ErrorState from '../components/ErrorState'
 import Player from '../components/Player'
 import WhereToWatch from '../components/WhereToWatch'
 import WatchlistButton from '../components/WatchlistButton'
+import LogModal from '../components/LogModal'
+import ReviewsSection from '../components/ReviewsSection'
+import MediaClips from '../components/MediaClips'
 import { buildStreamSources } from '../lib/streamSources'
+
+function Fact({ label, value }) {
+  if (!value) return null
+  return (
+    <div className="md-fact">
+      <dt className="md-fact-label">{label}</dt>
+      <dd className="md-fact-value">{value}</dd>
+    </div>
+  )
+}
 
 export default function MovieDetailsPage() {
   const { id } = useParams()
   const config = useImageConfig()
   const [state, setState] = useState({ loading: true, error: null, data: null })
   const [recs, setRecs] = useState([])
+  const [logOpen, setLogOpen] = useState(false)
+  const [logStats, setLogStats] = useState(null)
+  const [myLog, setMyLog] = useState(null)
+  const { user } = useAuth()
+
+  const refreshMyLog = useCallback(() => {
+    if (!user) { setMyLog(null); return }
+    api.logForMovie(id, 'movie')
+      .then((logs) => setMyLog(logs.find((l) => l.username === user.username && l.media_type === 'movie') || null))
+      .catch(() => {})
+  }, [id, user])
 
   useEffect(() => {
     let active = true
@@ -39,6 +64,12 @@ export default function MovieDetailsPage() {
       .catch(() => {})
     return () => { active = false }
   }, [id])
+
+  useEffect(() => {
+    api.logStats(id).then(setLogStats).catch(() => {})
+  }, [id])
+
+  useEffect(() => { refreshMyLog() }, [refreshMyLog])
 
   const details = state.data?.movie_details
   useDocumentTitle(details?.title)
@@ -61,9 +92,20 @@ export default function MovieDetailsPage() {
   const releaseYear = details.release_date ? new Date(details.release_date).getFullYear() : null
   const rating = details.vote_average ? details.vote_average.toFixed(1) : null
 
+  const facts = [
+    { label: 'Status', value: details.status },
+    { label: 'Released', value: details.release_date },
+    { label: 'Runtime', value: details.runtime ? formatRuntime(details.runtime) : null },
+    { label: 'Budget', value: formatMoney(details.budget) },
+    { label: 'Revenue', value: formatMoney(details.revenue) },
+    { label: 'Language', value: formatLanguage(details.original_language) },
+    { label: 'Rated', value: details.certification || (details.adult ? 'Adult' : null) },
+  ].filter((f) => f.value)
+
+  const companies = (details.production_companies || []).slice(0, 4)
+
   return (
     <div className="md-page">
-      {/* Full-screen hero */}
       <section className="md-hero">
         <div className="md-backdrop" style={backdrop ? { backgroundImage: `url(${backdrop})` } : {}} />
         <div className="md-overlay" />
@@ -84,7 +126,7 @@ export default function MovieDetailsPage() {
               {releaseYear && <span className="md-meta-item">{releaseYear}</span>}
               {rating && (
                 <span className="md-meta-item md-rating">
-                  <Icon name="star" size={16} /> {rating}
+                  <Icon name="star" size={14} /> {rating}
                 </span>
               )}
               {details.runtime && <span className="md-meta-item">{formatRuntime(details.runtime)}</span>}
@@ -96,13 +138,27 @@ export default function MovieDetailsPage() {
             {details.genres?.length > 0 && (
               <div className="md-genres">
                 {details.genres.map((g) => (
-                  <Link key={g.id} to={`/movies?genre=${g.id}`} className="md-chip">{g.name}</Link>
+                  <Link key={g.id} to={`/discover?tab=movie&genre=${g.id}`} className="md-chip">{g.name}</Link>
                 ))}
               </div>
             )}
 
             <div className="md-actions">
+              <a href="#watch" className="btn btn--accent">
+                <Icon name="play" size={15} />
+                <span>Watch</span>
+              </a>
               <WatchlistButton tmdbId={details.id} mediaType="movie" title={details.title} posterPath={details.poster_path} />
+              <button className="btn btn-ghost" onClick={() => setLogOpen(true)}>
+                <Icon name="check" size={16} />
+                <span>{myLog ? 'Edit Diary' : 'Add to diary'}</span>
+              </button>
+              {logStats && logStats.avg_rating && (
+                <span className="md-avg-rating">
+                  <Icon name="star" size={14} /> {Number(logStats.avg_rating).toFixed(1)}
+                  <span className="md-avg-rating__count">({logStats.total_logs})</span>
+                </span>
+              )}
             </div>
 
             <WhereToWatch kind="movie" id={details.id} title={details.title} />
@@ -110,8 +166,18 @@ export default function MovieDetailsPage() {
         </div>
       </section>
 
-      {/* Player */}
-      <section className="md-player-section">
+      {logOpen && (
+        <LogModal
+          tmdbId={details.id}
+          mediaType="movie"
+          title={details.title}
+          posterPath={details.poster_path}
+          onClose={() => { setLogOpen(false); api.logStats(id).then(setLogStats).catch(() => {}); refreshMyLog() }}
+        />
+      )}
+
+      <section className="md-player-section" id="watch">
+        <h2 className="md-section-title">Watch Now</h2>
         <Player
           key={details.id}
           sources={streamSources}
@@ -122,25 +188,31 @@ export default function MovieDetailsPage() {
         />
       </section>
 
-      {/* Quick facts */}
-      <section className="md-facts">
-        {[
-          { icon: 'clock', label: 'Runtime', value: formatRuntime(details.runtime) },
-          { icon: 'dollarSign', label: 'Budget', value: details.budget ? `$${compactNumber(details.budget)}` : '—' },
-          { icon: 'trendingUp', label: 'Revenue', value: details.revenue ? `$${compactNumber(details.revenue)}` : '—' },
-          { icon: 'circle', label: 'Status', value: details.status || '—' },
-        ].map((f) => (
-          <div key={f.label} className="md-fact">
-            <Icon name={f.icon} size={20} />
-            <div className="md-fact-body">
-              <span className="md-fact-label">{f.label}</span>
-              <span className="md-fact-value">{f.value}</span>
-            </div>
+      {(facts.length > 0 || companies.length > 0) && (
+        <section className="md-section">
+          <h2 className="md-section-title">Details</h2>
+          <div className="md-facts">
+            <dl className="md-facts-grid">
+              {facts.map((f) => (
+                <Fact key={f.label} label={f.label} value={f.value} />
+              ))}
+            </dl>
+            {companies.length > 0 && (
+              <div className="md-companies">
+                <span className="md-companies-label">Production</span>
+                <span className="md-companies-list">
+                  {companies.map((c) => c.name).join(' · ')}
+                </span>
+              </div>
+            )}
           </div>
-        ))}
-      </section>
+        </section>
+      )}
 
-      {/* Cast */}
+      <MediaClips tmdbId={id} mediaType="movie" />
+
+      <ReviewsSection tmdbId={id} mediaType="movie" />
+
       {credits?.cast?.length > 0 && (
         <section className="md-section">
           <h2 className="md-section-title">Cast</h2>
@@ -148,23 +220,21 @@ export default function MovieDetailsPage() {
         </section>
       )}
 
-      {/* Similar */}
+      {videos.length > 0 && (
+        <section className="md-section">
+          <h2 className="md-section-title">Trailers & Clips</h2>
+          <VideoRail videos={videos} />
+        </section>
+      )}
+
       {similar.length > 0 && (
         <section className="md-section">
           <h2 className="md-section-title">You might also like</h2>
           <MediaRail>
             {similar.slice(0, 12).map((item) => (
-              <MediaCard key={item.id} item={item} kind="movie" to={`/movies/${item.id}`} />
+              <MediaCard key={item.id} item={item} kind="movie" to={`/movie/${item.id}`} />
             ))}
           </MediaRail>
-        </section>
-      )}
-
-      {/* Trailers */}
-      {videos.length > 0 && (
-        <section className="md-section">
-          <h2 className="md-section-title">Trailers & Clips</h2>
-          <VideoRail videos={videos} />
         </section>
       )}
     </div>

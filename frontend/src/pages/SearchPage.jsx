@@ -4,6 +4,7 @@ import { api } from '../lib/api'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 import MediaCard from '../components/MediaCard'
 import Icon from '../components/Icon'
+import PageBanner from '../components/PageBanner'
 import { GridSkeleton, CardSkeleton } from '../components/Loading'
 import ErrorState from '../components/ErrorState'
 
@@ -99,21 +100,20 @@ export default function SearchPage() {
 
   return (
     <div className="page search-page">
-      <div className="search-hero">
-        <div className="search-hero-content">
-          <h1 className="search-title">Search Madflix</h1>
-          <p className="search-subtitle">Find movies, shows, and people</p>
-        </div>
-      </div>
+      <PageBanner
+        title={searchQuery ? `Results for "${searchQuery}"` : 'Search'}
+        subtitle={searchQuery ? `${results.length} matches` : 'Find movies, shows, and people'}
+        eyebrow={searchQuery ? 'Search' : 'Catalog'}
+      />
 
       <div className="search-filter-bar">
         <div className="search-filter-inner">
           <form
-            className={`movie-search ${focused ? 'focused' : ''}`}
+            className="search"
             onSubmit={handleSearch}
             role="search"
           >
-            <span className="movie-search-icon" aria-hidden="true">
+            <span className="search-icon" aria-hidden="true">
               <Icon name="search" size={18} />
             </span>
             <input
@@ -136,10 +136,6 @@ export default function SearchPage() {
         <>
           {initialLoading ? (
             <div className="search-results-section">
-              <div className="search-results-header">
-                <h2 className="search-results-title">Searching for "{searchQuery}"</h2>
-                <p className="search-results-sub">Loading results...</p>
-              </div>
               <GridSkeleton count={12} />
             </div>
           ) : results.length === 0 ? (
@@ -160,7 +156,7 @@ export default function SearchPage() {
                   </div>
                   <div className="genre-results-grid">
                     {movieResults.map((item) => (
-                      <MediaCard key={`movie-${item.id}`} item={item} kind="movie" to={`/movies/${item.id}`} />
+                      <MediaCard key={`movie-${item.id}`} item={item} kind="movie" to={`/movie/${item.id}`} />
                     ))}
                   </div>
                 </div>
@@ -174,7 +170,7 @@ export default function SearchPage() {
                   </div>
                   <div className="genre-results-grid">
                     {showResults.map((item) => (
-                      <MediaCard key={`tv-${item.id}`} item={item} kind="show" to={`/shows/${item.id}`} />
+                      <MediaCard key={`tv-${item.id}`} item={item} kind="show" to={`/show/${item.id}`} />
                     ))}
                   </div>
                 </div>
@@ -211,7 +207,7 @@ export default function SearchPage() {
             <Icon name="search" size={48} />
           </div>
           <h3 className="search-empty-title">Start searching</h3>
-          <p className="search-empty-text">Type a movie, show, or person name in the search bar above.</p>
+          <p className="search-empty-text">Type a movie, show, or person name above.</p>
         </div>
       )}
     </div>

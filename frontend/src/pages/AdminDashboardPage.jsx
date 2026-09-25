@@ -3,10 +3,10 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { api } from '../lib/api'
 import Icon from '../components/Icon'
-import Loading from '../components/Loading'
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: 'grid' },
+  { id: 'moderation', label: 'Moderation', icon: 'flag' },
   { id: 'activity', label: 'Activity', icon: 'clock' },
   { id: 'users', label: 'Users', icon: 'user' },
   { id: 'content', label: 'Content', icon: 'film' },
@@ -23,6 +23,19 @@ const ACTION_STYLES = {
   watchlist_add: { bg: '#7f1d1d', color: '#f87171' },
   watchlist_remove: { bg: '#3f3f46', color: '#a1a1aa' },
   search: { bg: '#1e3a5f', color: '#60a5fa' },
+  clip: { bg: '#164e63', color: '#67e8f9' },
+  comment: { bg: '#0c4a6e', color: '#38bdf8' },
+  reply: { bg: '#312e81', color: '#a5b4fc' },
+  report: { bg: '#7f1d1d', color: '#f87171' },
+  moderation: { bg: '#78350f', color: '#fbbf24' },
+}
+
+const REASON_STYLES = {
+  spam: { bg: '#713f12', color: '#fbbf24' },
+  inappropriate: { bg: '#7f1d1d', color: '#f87171' },
+  copyright: { bg: '#581c87', color: '#c084fc' },
+  harassment: { bg: '#4c1d95', color: '#ddd6fe' },
+  other: { bg: '#27272a', color: '#a1a1aa' },
 }
 
 function formatTimeAgo(ts) {
@@ -73,6 +86,16 @@ function Panel({ title, children, action }) {
   )
 }
 
+function Empty({ icon, title, hint }) {
+  return (
+    <div className="a-empty">
+      <span className="a-empty-icon"><Icon name={icon} size={26} /></span>
+      <h2>{title}</h2>
+      <p>{hint}</p>
+    </div>
+  )
+}
+
 function ActivityRow({ item, onBan, bannedSet }) {
   const s = ACTION_STYLES[item.action] || { bg: '#27272a', color: '#a1a1aa' }
   return (
@@ -95,6 +118,39 @@ function ActivityRow({ item, onBan, bannedSet }) {
   )
 }
 
+function SkeletonShell() {
+  return (
+    <div className="a-page">
+      <header className="a-topbar">
+        <div className="a-topbar-left">
+          <h1 className="a-topbar-title">Dashboard</h1>
+          <span className="a-live-dot" />
+          <span className="a-live-text">Live</span>
+        </div>
+        <Link to="/" className="a-btn">
+          <Icon name="arrowLeft" size={14} />
+          Back to Madflix
+        </Link>
+      </header>
+      <nav className="a-tabs">
+        {TABS.map(t => (
+          <button key={t.id} className="a-tab" disabled>
+            <Icon name={t.icon} size={14} />
+            {t.label}
+          </button>
+        ))}
+      </nav>
+      <div className="a-content" aria-busy="true">
+        <div className="a-skel-grid">
+          {[...Array(6)].map((_, i) => <div key={i} className="a-skel" />)}
+        </div>
+        <div className="a-skel a-skel-panel" />
+        <div className="a-skel a-skel-panel" />
+      </div>
+    </div>
+  )
+}
+
 export default function AdminDashboardPage() {
   const { user } = useAuth()
   const [stats, setStats] = useState(null)
@@ -105,6 +161,10 @@ export default function AdminDashboardPage() {
   const [searchStats, setSearchStats] = useState(null)
   const [recentSearches, setRecentSearches] = useState([])
   const [bannedIps, setBannedIps] = useState([])
+  const [moderation, setModeration] = useState(null)
+  const [reportFilter, setReportFilter] = useState('open')
+  const [confirmKey, setConfirmKey] = useState(null)
+  const [busyKey, setBusyKey] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [tab, setTab] = useState('overview')
@@ -112,10 +172,11 @@ export default function AdminDashboardPage() {
   const [banReason, setBanReason] = useState('')
   const [banning, setBanning] = useState(false)
   const intervalRef = useRef(null)
+  const loadedRef = useRef(false)
 
   const fetchAll = useCallback(async () => {
     try {
-      const [s, a, u, t, l, ss, rs, bi] = await Promise.all([
+      const [s, a, u, t, l, ss, rs, bi, m] = await Promise.all([
         api.adminStats(),
         api.adminActivity(),
         api.adminUsers(),
@@ -124,6 +185,7 @@ export default function AdminDashboardPage() {
         api.adminSearchStats(),
         api.adminSearches(),
         api.adminBannedIps(),
+        api.adminModeration(),
       ])
       setStats(s)
       setActivity(a)
@@ -133,9 +195,11 @@ export default function AdminDashboardPage() {
       setSearchStats(ss)
       setRecentSearches(rs)
       setBannedIps(bi)
+      setModeration(m)
+      loadedRef.current = true
       setError('')
     } catch (err) {
-      setError(err.message)
+      if (!loadedRef.current) setError(err.message)
     } finally {
       setLoading(false)
     }
@@ -147,6 +211,20 @@ export default function AdminDashboardPage() {
     intervalRef.current = setInterval(fetchAll, 10000)
     return () => clearInterval(intervalRef.current)
   }, [user, fetchAll])
+
+  const runAction = async (key, fn) => {
+    if (busyKey) return
+    setBusyKey(key)
+    try {
+      await fn()
+      await fetchAll()
+    } catch (err) {
+      alert(err.message)
+    } finally {
+      setBusyKey(null)
+      setConfirmKey(null)
+    }
+  }
 
   const handleBan = async () => {
     if (!banModal) return
@@ -185,7 +263,7 @@ export default function AdminDashboardPage() {
     )
   }
 
-  if (loading) return <div className="a-page"><Loading label="Loading dashboard" /></div>
+  if (loading) return <SkeletonShell />
 
   if (error) {
     return (
@@ -201,6 +279,38 @@ export default function AdminDashboardPage() {
   }
 
   const bannedSet = new Set(bannedIps.map(b => b.ip_address))
+  const openReports = moderation?.counts?.open_reports ?? 0
+  const reportList = (moderation?.reports || []).filter(r =>
+    reportFilter === 'all' || (reportFilter === 'open' ? !r.resolved : r.resolved)
+  )
+
+  const confirmRemove = (key, label, fn) => {
+    if (confirmKey === key) {
+      return (
+        <span className="a-confirm">
+          {label}
+          <button
+            className="a-btn a-btn-sm a-btn-danger"
+            disabled={busyKey === key}
+            onClick={() => runAction(key, fn)}
+          >
+            {busyKey === key ? '…' : 'Remove'}
+          </button>
+          <button className="a-btn a-btn-sm" onClick={() => setConfirmKey(null)}>Cancel</button>
+        </span>
+      )
+    }
+    return (
+      <button
+        className="a-btn a-btn-sm a-btn-danger"
+        onClick={() => setConfirmKey(key)}
+        aria-label="Remove"
+        title="Remove"
+      >
+        <Icon name="trash" size={12} />
+      </button>
+    )
+  }
 
   return (
     <div className="a-page">
@@ -252,6 +362,9 @@ export default function AdminDashboardPage() {
           >
             <Icon name={t.icon} size={14} />
             {t.label}
+            {t.id === 'moderation' && openReports > 0 && (
+              <span className="a-tab-count a-tab-count--alert">{openReports}</span>
+            )}
             {t.id === 'banned' && bannedIps.length > 0 && (
               <span className="a-tab-count">{bannedIps.length}</span>
             )}
@@ -269,6 +382,18 @@ export default function AdminDashboardPage() {
               <Stat label="Watch Time" value={formatDuration(stats?.total_watch_time_seconds ?? 0)} icon="clock" color="#4ade80" sub={`avg ${formatDuration(stats?.avg_session_seconds ?? 0)} / session`} />
               <Stat label="Active (7d)" value={stats?.active_users_7d ?? 0} icon="userCheck" color="#fbbf24" sub={`${stats?.new_users_today ?? 0} new today`} />
               <Stat label="Content" value={stats?.unique_content ?? 0} icon="film" color="#fb923c" sub={`${stats?.plays_this_week ?? 0} plays this week`} />
+              <Stat label="Clips" value={stats?.total_clips ?? 0} icon="clapper" color="#67e8f9" />
+              <Stat label="Reviews" value={stats?.total_reviews ?? 0} icon="journal" color="#e879f9" />
+              <Stat label="Replies" value={stats?.total_replies ?? 0} icon="pencil" color="#818cf8" />
+              <Stat label="Comments" value={stats?.total_clip_comments ?? 0} icon="chat" color="#38bdf8" />
+              <Stat label="Follows" value={stats?.total_follows ?? 0} icon="users" color="#2dd4bf" />
+              <Stat
+                label="Open Reports"
+                value={stats?.open_reports ?? 0}
+                icon="flag"
+                color="#f87171"
+                sub={`${stats?.resolved_reports ?? 0} resolved`}
+              />
             </div>
 
             {stats?.daily_plays?.length > 0 && (
@@ -297,7 +422,7 @@ export default function AdminDashboardPage() {
                   {activity.slice(0, 8).map((item, i) => (
                     <ActivityRow key={i} item={item} bannedSet={bannedSet} onBan={(ip) => setBanModal(ip)} />
                   ))}
-                  {activity.length === 0 && <p className="a-empty-text">No activity yet</p>}
+                  {activity.length === 0 && <Empty icon="clock" title="Quiet for now" hint="Sign-ins, watches, and moderation actions appear here as they happen." />}
                 </div>
               </Panel>
 
@@ -320,7 +445,7 @@ export default function AdminDashboardPage() {
                       </span>
                     </div>
                   ))}
-                  {liveSessions.length === 0 && <p className="a-empty-text">No active sessions</p>}
+                  {liveSessions.length === 0 && <Empty icon="play" title="No one watching" hint="Active playback sessions stream in here live." />}
                 </div>
               </Panel>
             </div>
@@ -342,13 +467,192 @@ export default function AdminDashboardPage() {
           </>
         )}
 
+        {tab === 'moderation' && moderation && (
+          <>
+            <div className="a-stats">
+              <Stat
+                label="Open Reports"
+                value={moderation.counts.open_reports}
+                icon="flag"
+                color="#f87171"
+                sub={moderation.counts.open_reports > 0 ? 'Needs review' : 'Queue clear'}
+              />
+              <Stat label="Resolved" value={moderation.counts.resolved_reports} icon="shieldCheck" color="#4ade80" />
+              <Stat label="Clips" value={moderation.counts.clips} icon="clapper" color="#67e8f9" />
+              <Stat label="Comments" value={moderation.counts.comments} icon="chat" color="#38bdf8" />
+              <Stat label="Replies" value={moderation.counts.replies} icon="pencil" color="#818cf8" />
+            </div>
+
+            <Panel
+              title="Report Queue"
+              action={
+                <div className="a-seg">
+                  {['open', 'resolved', 'all'].map(f => (
+                    <button
+                      key={f}
+                      className={reportFilter === f ? 'active' : ''}
+                      onClick={() => setReportFilter(f)}
+                    >
+                      {f === 'open' ? 'Open' : f === 'resolved' ? 'Resolved' : 'All'}
+                    </button>
+                  ))}
+                </div>
+              }
+            >
+              <div className="a-list">
+                {reportList.map(r => {
+                  const key = `report-clip-${r.id}`
+                  return (
+                    <div key={r.id} className={`a-row a-row--wrap${r.resolved ? ' is-resolved' : ''}`}>
+                      <Badge style={REASON_STYLES[r.reason] || REASON_STYLES.other}>{r.reason}</Badge>
+                      <span className="a-row-user">{r.clip.caption || 'Untitled clip'}</span>
+                      <span className="a-row-detail">
+                        @{r.clip.user.username}
+                        {r.detail ? ` · ${r.detail}` : ''}
+                        {r.clip_reports > 1 ? ` · ${r.clip_reports} reports` : ''}
+                      </span>
+                      <span className="a-row-meta">
+                        <span className="a-row-time">{formatTimeAgo(r.created_at)}</span>
+                      </span>
+                      <span className="a-row-actions">
+                        {r.resolved ? (
+                          <button
+                            className="a-btn a-btn-sm"
+                            disabled={busyKey === `report-${r.id}`}
+                            onClick={() => runAction(`report-${r.id}`, () => api.adminReportResolve(r.id, false))}
+                          >
+                            Reopen
+                          </button>
+                        ) : (
+                          <>
+                            <Link className="a-btn a-btn-sm" to={`/clips/${r.clip.id}`}>Open</Link>
+                            <button
+                              className="a-btn a-btn-sm a-btn-primary"
+                              disabled={busyKey === `report-${r.id}`}
+                              onClick={() => runAction(`report-${r.id}`, () => api.adminReportResolve(r.id, true))}
+                            >
+                              <Icon name="check" size={12} /> Resolve
+                            </button>
+                            {confirmRemove(key, 'Remove clip?', () => api.adminDeleteClip(r.clip.id))}
+                          </>
+                        )}
+                      </span>
+                    </div>
+                  )
+                })}
+                {reportList.length === 0 && (
+                  <Empty
+                    icon="shieldCheck"
+                    title={reportFilter === 'open' ? 'Queue clear' : 'No reports'}
+                    hint={
+                      reportFilter === 'open'
+                        ? 'Nothing needs review. Clips members flag appear here.'
+                        : 'Reports filed against clips will show up in this queue.'
+                    }
+                  />
+                )}
+              </div>
+            </Panel>
+
+            <div className="a-grid-2">
+              <Panel title="Recent Clips">
+                <div className="a-list">
+                  {moderation.clips.map(c => (
+                    <div key={c.id} className="a-row a-row--wrap">
+                      <span className="a-row-user">{c.caption || 'Untitled clip'}</span>
+                      <span className="a-row-detail">
+                        @{c.user.username}
+                        <span className="a-mini">
+                          <Icon name="heart" size={11} />{c.like_count}
+                        </span>
+                        <span className="a-mini">
+                          <Icon name="chat" size={11} />{c.comment_count}
+                        </span>
+                        {c.open_report_count > 0 && (
+                          <span className="a-mini is-warn">
+                            <Icon name="flag" size={11} />{c.open_report_count}
+                          </span>
+                        )}
+                      </span>
+                      <span className="a-row-meta">
+                        <span className="a-row-time">{formatTimeAgo(c.created_at)}</span>
+                      </span>
+                      <span className="a-row-actions">
+                        <Link className="a-btn a-btn-sm" to={`/clips/${c.id}`}>Open</Link>
+                        {confirmRemove(`clip-${c.id}`, 'Remove clip?', () => api.adminDeleteClip(c.id))}
+                      </span>
+                    </div>
+                  ))}
+                  {moderation.clips.length === 0 && (
+                    <Empty icon="clapper" title="No clips yet" hint="Clips members post show up here for review." />
+                  )}
+                </div>
+              </Panel>
+
+              <Panel title="Recent Comments">
+                <div className="a-list">
+                  {moderation.comments.map(c => (
+                    <div key={c.id} className="a-row a-row--wrap">
+                      <span className="a-row-user">{c.body || 'Empty comment'}</span>
+                      <span className="a-row-detail">
+                        @{c.username} · on “{(c.clip_caption || 'untitled').slice(0, 40)}”
+                      </span>
+                      <span className="a-row-meta">
+                        <span className="a-row-time">{formatTimeAgo(c.created_at)}</span>
+                      </span>
+                      <span className="a-row-actions">
+                        <Link className="a-btn a-btn-sm" to={`/clips/${c.clip_id}`}>Open</Link>
+                        {confirmRemove(`comment-${c.id}`, 'Delete comment?', () => api.adminDeleteComment(c.id))}
+                      </span>
+                    </div>
+                  ))}
+                  {moderation.comments.length === 0 && (
+                    <Empty icon="chat" title="No comments yet" hint="Comments left on clips appear here." />
+                  )}
+                </div>
+              </Panel>
+            </div>
+
+            <Panel title="Recent Review Replies">
+              <div className="a-list">
+                {moderation.replies.map(r => (
+                  <div key={r.id} className="a-row a-row--wrap">
+                    <span className="a-row-user">{r.body || 'Empty reply'}</span>
+                    <span className="a-row-detail">
+                      @{r.username} · on{' '}
+                      <Link
+                        className="a-link"
+                        to={r.log_media_type === 'tv' ? `/show/${r.log_tmdb_id}` : `/movie/${r.log_tmdb_id}`}
+                      >
+                        TMDB #{r.log_tmdb_id}
+                      </Link>
+                      <span className="a-mini">
+                        <Icon name="heart" size={11} />{r.like_count}
+                      </span>
+                    </span>
+                    <span className="a-row-meta">
+                      <span className="a-row-time">{formatTimeAgo(r.created_at)}</span>
+                    </span>
+                    <span className="a-row-actions">
+                      {confirmRemove(`reply-${r.id}`, 'Delete reply?', () => api.adminDeleteReply(r.id))}
+                    </span>
+                  </div>
+                ))}
+                {moderation.replies.length === 0 && (
+                  <Empty icon="journal" title="No review replies yet" hint="Replies members leave on diary reviews appear here." />
+                )}
+              </div>
+            </Panel>
+          </>
+        )}
+
         {tab === 'activity' && (
           <Panel title="All Activity">
             <div className="a-list">
               {activity.map((item, i) => (
                 <ActivityRow key={i} item={item} bannedSet={bannedSet} onBan={(ip) => setBanModal(ip)} />
               ))}
-              {activity.length === 0 && <p className="a-empty-text">No activity yet</p>}
+              {activity.length === 0 && <Empty icon="clock" title="Quiet for now" hint="Sign-ins, watches, and moderation actions appear here as they happen." />}
             </div>
           </Panel>
         )}
@@ -386,7 +690,7 @@ export default function AdminDashboardPage() {
                       <td>{formatDuration(u.total_watch_seconds ?? 0)}</td>
                     </tr>
                   ))}
-                  {users.length === 0 && <tr><td colSpan="8" className="a-empty-text">No users</td></tr>}
+                  {users.length === 0 && <tr><td colSpan="8" className="a-empty-text">No users yet</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -417,7 +721,9 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
                 ))}
-              {(!topContent.movies?.length && !topContent.shows?.length) && <p className="a-empty-text">No content data yet</p>}
+              {(!topContent.movies?.length && !topContent.shows?.length) && (
+                <Empty icon="film" title="No watch data yet" hint="The most-streamed movies and shows rank here." />
+              )}
             </div>
           </Panel>
         )}
@@ -442,7 +748,7 @@ export default function AdminDashboardPage() {
                   </span>
                 </div>
               ))}
-              {liveSessions.length === 0 && <p className="a-empty-text">No active sessions</p>}
+              {liveSessions.length === 0 && <Empty icon="play" title="No one watching" hint="Active playback sessions stream in here live." />}
             </div>
           </Panel>
         )}
@@ -463,7 +769,7 @@ export default function AdminDashboardPage() {
                     <span className="a-row-meta">{q.count} searches</span>
                   </div>
                 ))}
-                {(!searchStats?.top_queries?.length) && <p className="a-empty-text">No search data yet</p>}
+                {(!searchStats?.top_queries?.length) && <Empty icon="search" title="No searches yet" hint="What members search for shows up here." />}
               </div>
             </Panel>
 
@@ -487,7 +793,7 @@ export default function AdminDashboardPage() {
                     </span>
                   </div>
                 ))}
-                {recentSearches.length === 0 && <p className="a-empty-text">No searches yet</p>}
+                {recentSearches.length === 0 && <Empty icon="search" title="No searches yet" hint="Individual member searches appear here." />}
               </div>
             </Panel>
           </div>
@@ -520,7 +826,7 @@ export default function AdminDashboardPage() {
                       </td>
                     </tr>
                   ))}
-                  {bannedIps.length === 0 && <tr><td colSpan="5" className="a-empty-text">No banned IPs</td></tr>}
+                  {bannedIps.length === 0 && <tr><td colSpan="5" className="a-empty-text">No banned IPs — the ban list is clean.</td></tr>}
                 </tbody>
               </table>
             </div>

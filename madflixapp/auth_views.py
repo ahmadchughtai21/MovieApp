@@ -110,12 +110,16 @@ def profile_update_view(request):
     user = request.user
 
     if 'email' in data:
-        user.email = data['email']
+        user.email = data['email'] or ''
         user.save()
 
-    profile = user.profile
+    from .models import UserProfile
+    profile, _ = UserProfile.objects.get_or_create(
+        user=user,
+        defaults={'display_name': user.username},
+    )
     if 'display_name' in data:
-        profile.display_name = data['display_name']
+        profile.display_name = data['display_name'] or user.username
     if 'avatar_url' in data:
         profile.avatar_url = data['avatar_url']
     profile.save()

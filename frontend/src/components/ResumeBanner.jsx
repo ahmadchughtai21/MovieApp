@@ -32,8 +32,8 @@ export default function ResumeBanner({ tmdbId, mediaType, season, episode, title
     : 0
 
   const linkTo = mediaType === 'tv'
-    ? `/shows/${tmdbId}?s=${session.season}&e=${session.episode}`
-    : `/movies/${tmdbId}`
+    ? `/show/${tmdbId}?s=${session.season}&e=${session.episode}`
+    : `/movie/${tmdbId}`
 
   const label = mediaType === 'tv' && session.season && session.episode
     ? `S${session.season}E${session.episode}`

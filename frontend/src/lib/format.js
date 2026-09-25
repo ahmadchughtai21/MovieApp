@@ -16,3 +16,22 @@ export function compactNumber(value) {
   if (!value && value !== 0) return '0'
   return new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(value)
 }
+
+export function formatMoney(value) {
+  if (!value || value <= 0) return null
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(value)
+}
+
+export function formatLanguage(code) {
+  if (!code) return null
+  try {
+    return new Intl.DisplayNames(['en'], { type: 'language' }).of(code) || code.toUpperCase()
+  } catch {
+    return code.toUpperCase()
+  }
+}

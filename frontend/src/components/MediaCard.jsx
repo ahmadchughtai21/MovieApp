@@ -133,7 +133,7 @@ export default function MediaCard({ item, to, kind = 'movie' }) {
 
           {kind !== 'person' ? (
             <div className="card-actions">
-              <Tooltip text={inWatchlist ? 'Remove from watchlist' : 'Add to watchlist'}>
+              <Tooltip text={inWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist'}>
                 <button
                   className={`card-action-btn${inWatchlist ? ' active' : ''}${inWatchlist && watched ? ' active-filled' : ''}`}
                   onClick={toggleWatchlist}

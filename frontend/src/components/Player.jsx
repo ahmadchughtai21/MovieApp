@@ -87,10 +87,8 @@ export default function Player({ src, sources, title, tmdbId, mediaType, season,
             title={title || 'Stream player'}
             src={currentSource.url}
             allowFullScreen
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen; web-share"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
             referrerPolicy="no-referrer"
-            webkitAllowFullScreen
-            mozAllowFullScreen
           />
         </div>
 
@@ -100,8 +98,9 @@ export default function Player({ src, sources, title, tmdbId, mediaType, season,
             className="p-fs-btn"
             onClick={toggleFullscreen}
             aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+            title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
           >
-            <Icon name={isFullscreen ? 'x' : 'maximize'} size={16} />
+            <Icon name={isFullscreen ? 'x' : 'maximize'} size={15} />
             <span>{isFullscreen ? 'Exit' : 'Fullscreen'}</span>
           </button>
         </div>
@@ -109,7 +108,10 @@ export default function Player({ src, sources, title, tmdbId, mediaType, season,
 
       {sourceList.length > 1 && (
         <div className="p-servers">
-          <span className="p-servers-label">Servers</span>
+          <div className="p-servers-head">
+            <span className="p-servers-label">Stream servers</span>
+            <span className="p-servers-hint">If one doesn't load, try another</span>
+          </div>
           <div className="p-servers-list">
             {sourceList.map((source, i) => (
               <button

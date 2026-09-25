@@ -38,7 +38,7 @@ export default function RecommendedForYou() {
             key={item.id}
             item={item}
             kind={item.media_type === 'tv' ? 'show' : 'movie'}
-            to={item.media_type === 'tv' ? `/shows/${item.id}` : `/movies/${item.id}`}
+            to={item.media_type === 'tv' ? `/show/${item.id}` : `/movie/${item.id}`}
           />
         ))}
       </MediaRail>

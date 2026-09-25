@@ -5,6 +5,7 @@ from rest_framework import status
 from django.http import JsonResponse
 from django.core.cache import cache
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 import requests
 from .serializers import (
     GenreSerializer, MovieSearchSerializer, TVSearchSerializer,
@@ -65,19 +66,27 @@ def make_tmdb_request(endpoint, params=None):
     if cached is not None:
         return cached
 
-    try:
-        url = f"{TMDB_BASE_URL}{endpoint}"
-        if params is None:
-            params = {}
-        params['api_key'] = TMDB_API_KEY
+    url = f"{TMDB_BASE_URL}{endpoint}"
+    if params is None:
+        params = {}
+    params['api_key'] = TMDB_API_KEY
 
-        response = requests.get(url, params=params, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-        cache.set(cache_key, data, 300)  # Cache for 5 minutes
-        return data
-    except requests.exceptions.RequestException as e:
-        return {"error": str(e)}
+    # The TMDB edge occasionally returns empty 204s under burst load — retry.
+    last_error = None
+    for attempt in range(3):
+        try:
+            response = requests.get(url, params=params, timeout=10)
+            if response.status_code == 204 or not response.content:
+                raise requests.exceptions.RequestException('empty TMDB response')
+            response.raise_for_status()
+            data = response.json()
+            cache.set(cache_key, data, 300)  # Cache for 5 minutes
+            return data
+        except (requests.exceptions.RequestException, ValueError) as e:
+            last_error = e
+            if attempt < 2:
+                time.sleep(0.5 * (attempt + 1))
+    return {"error": str(last_error)}
 
 # =============================================================================
 # HOME PAGE API ENDPOINTS
@@ -1216,6 +1225,85 @@ def api_recommendations(request):
             {"error": "Failed to fetch recommendations", "details": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+def get_recommended_media_pairs(user):
+    """
+    Ordered [(tmdb_id, media_type), ...] recommendation pool for the clips feed.
+
+    Authenticated users: TMDB recommendations derived from their recent watch
+    history (same sources as api_recommendations), falling back to trending +
+    popular when history is thin. Anonymous users get an empty list.
+    Cached per user for 10 minutes.
+    """
+    if user is None or not user.is_authenticated:
+        return []
+
+    cache_key = f'rec_pairs:{user.id}'
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return [tuple(p) for p in cached]
+
+    from datetime import timedelta
+    from django.utils import timezone
+    from .models import WatchHistory, Watchlist
+
+    pairs = []
+    seen = set()
+
+    def add(rid, media_type):
+        if rid and (rid, media_type) not in seen:
+            seen.add((rid, media_type))
+            pairs.append((rid, media_type))
+
+    cutoff = timezone.now() - timedelta(days=60)
+    recent_movies = list(
+        WatchHistory.objects.filter(user=user, media_type='movie', timestamp__gte=cutoff)
+        .values_list('tmdb_id', flat=True).distinct()[:8]
+    )
+    recent_shows = list(
+        WatchHistory.objects.filter(user=user, media_type='tv', timestamp__gte=cutoff)
+        .values_list('tmdb_id', flat=True).distinct()[:5]
+    )
+    exclude_ids = set(
+        Watchlist.objects.filter(user=user).values_list('tmdb_id', flat=True)
+    ) | set(
+        WatchHistory.objects.filter(user=user, completed=True).values_list('tmdb_id', flat=True)
+    )
+
+    def recommendations_for(ids, kind):
+        found = []
+        if not ids:
+            return found
+        with ThreadPoolExecutor(max_workers=6) as executor:
+            futures = {
+                executor.submit(make_tmdb_request, f'/{kind}/{mid}/recommendations'): mid
+                for mid in ids
+            }
+            for future in as_completed(futures):
+                try:
+                    result = future.result()
+                except Exception:
+                    continue
+                for rec in (result.get('results') or [])[:10]:
+                    rid = rec.get('id')
+                    if rid and rid not in exclude_ids:
+                        found.append(rid)
+        return found
+
+    for rid in recommendations_for(recent_movies, 'movie'):
+        add(rid, 'movie')
+    for rid in recommendations_for(recent_shows, 'tv'):
+        add(rid, 'tv')
+
+    if len(pairs) < 10:
+        for endpoint in ('/trending/movie/week', '/movie/popular'):
+            result = make_tmdb_request(endpoint)
+            for item in (result.get('results') or [])[:20]:
+                add(item.get('id'), 'movie')
+
+    cache.set(cache_key, [list(p) for p in pairs], 600)
+    return pairs
 
 
 @api_view(['GET'])

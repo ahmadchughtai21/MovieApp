@@ -3,10 +3,15 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth.models import User
-from django.db.models import Count, Q, Avg, Sum
+from django.db.models import Count, Q, Avg, Sum, Max
 from django.utils import timezone
 from datetime import timedelta
-from .models import WatchHistory, Watchlist, PlaybackSession, AuditLog, SearchLog, BannedIP
+from .models import (
+    WatchHistory, Watchlist, PlaybackSession, AuditLog, SearchLog, BannedIP,
+    Clip, ClipComment, ClipReport, MovieLog, ReviewReply, Follow,
+)
+from .serializers import ClipSerializer
+from .auth_views import log_audit
 
 
 def parse_ua(ua_string):
@@ -86,6 +91,14 @@ def admin_stats(request):
         count = WatchHistory.objects.filter(timestamp__gte=day_start, timestamp__lt=day_end).count()
         daily_plays.append({'date': day.isoformat(), 'count': count})
 
+    total_clips = Clip.objects.count()
+    total_clip_comments = ClipComment.objects.count()
+    total_reviews = MovieLog.objects.exclude(review='').count()
+    total_replies = ReviewReply.objects.count()
+    total_follows = Follow.objects.count()
+    open_reports = ClipReport.objects.filter(resolved=False).count()
+    resolved_reports = ClipReport.objects.filter(resolved=True).count()
+
     return Response({
         'total_users': total_users,
         'active_users_7d': active_users,
@@ -101,6 +114,13 @@ def admin_stats(request):
         'unique_content': unique_content,
         'devices': device_counts,
         'daily_plays': daily_plays,
+        'total_clips': total_clips,
+        'total_clip_comments': total_clip_comments,
+        'total_reviews': total_reviews,
+        'total_replies': total_replies,
+        'total_follows': total_follows,
+        'open_reports': open_reports,
+        'resolved_reports': resolved_reports,
     })
 
 
@@ -162,21 +182,28 @@ def admin_activity(request):
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def admin_users(request):
+    # Aggregate per-user values in grouped queries first: combining multi-valued
+    # joins in one annotate() would multiply Count/Sum across the cross join.
+    watch_times = dict(
+        PlaybackSession.objects.values('user_id').annotate(t=Sum('position_seconds')).values_list('user_id', 't')
+    )
+    last_sessions = dict(
+        PlaybackSession.objects.values('user_id').annotate(t=Max('last_played')).values_list('user_id', 't')
+    )
+    last_watches = dict(
+        WatchHistory.objects.values('user_id').annotate(t=Max('timestamp')).values_list('user_id', 't')
+    )
+
     users = User.objects.annotate(
-        play_count=Count('watch_history'),
-        watchlist_count=Count('watchlist'),
-        session_count=Count('playback_sessions'),
+        play_count=Count('watch_history', distinct=True),
+        watchlist_count=Count('watchlist', distinct=True),
+        session_count=Count('playback_sessions', distinct=True),
     ).order_by('-date_joined')
 
     result = []
     for u in users:
-        total_time = PlaybackSession.objects.filter(user=u).aggregate(
-            total=Sum('position_seconds')
-        )['total'] or 0
-
-        last_active = PlaybackSession.objects.filter(user=u).order_by('-last_played').values_list('last_played', flat=True).first()
-        if not last_active:
-            last_active = WatchHistory.objects.filter(user=u).order_by('-timestamp').values_list('timestamp', flat=True).first()
+        total_time = watch_times.get(u.id) or 0
+        last_active = last_sessions.get(u.id) or last_watches.get(u.id)
 
         result.append({
             'id': u.id,
@@ -387,3 +414,169 @@ def admin_unban_ip(request, ban_id):
         return Response(status=status.HTTP_204_NO_CONTENT)
     except BannedIP.DoesNotExist:
         return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+# =============================================================================
+# MODERATION (clips, reports, comments, review replies)
+# =============================================================================
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_moderation(request):
+    """Reports queue plus recent community content, for the Moderation tab."""
+    ctx = {'request': request}
+
+    reports = []
+    report_qs = (
+        ClipReport.objects.select_related('clip__user', 'reporter')
+        .annotate(clip_report_total=Count('clip__reports', distinct=True))
+        .order_by('resolved', '-created_at')[:50]
+    )
+    for r in report_qs:
+        reports.append({
+            'id': r.id,
+            'reason': r.reason,
+            'detail': r.detail,
+            'resolved': r.resolved,
+            'created_at': r.created_at.isoformat(),
+            'reporter': r.reporter.username,
+            'clip_reports': r.clip_report_total,
+            'clip': ClipSerializer(r.clip, context=ctx).data,
+        })
+
+    clips = []
+    clip_qs = (
+        Clip.objects.select_related('user')
+        .prefetch_related('likes', 'comments', 'reports', 'tags')
+        .order_by('-created_at')[:25]
+    )
+    for c in clip_qs:
+        data = ClipSerializer(c, context=ctx).data
+        all_reports = c.reports.all()
+        data['report_count'] = len(all_reports)
+        data['open_report_count'] = sum(1 for rep in all_reports if not rep.resolved)
+        clips.append(data)
+
+    comments = [
+        {
+            'id': c.id,
+            'body': c.body,
+            'username': c.user.username,
+            'clip_id': c.clip_id,
+            'clip_caption': c.clip.caption,
+            'created_at': c.created_at.isoformat(),
+        }
+        for c in ClipComment.objects.select_related('user', 'clip').order_by('-created_at')[:25]
+    ]
+
+    replies = [
+        {
+            'id': r.id,
+            'body': r.body,
+            'username': r.user.username,
+            'log_id': r.log_id,
+            'log_tmdb_id': r.log.tmdb_id,
+            'log_media_type': r.log.media_type,
+            'like_count': r.likes.count(),
+            'created_at': r.created_at.isoformat(),
+        }
+        for r in ReviewReply.objects.select_related('user', 'log').prefetch_related('likes')
+        .order_by('-created_at')[:25]
+    ]
+
+    counts = {
+        'reports': ClipReport.objects.count(),
+        'open_reports': ClipReport.objects.filter(resolved=False).count(),
+        'resolved_reports': ClipReport.objects.filter(resolved=True).count(),
+        'clips': Clip.objects.count(),
+        'comments': ClipComment.objects.count(),
+        'replies': ReviewReply.objects.count(),
+    }
+
+    return Response({
+        'counts': counts,
+        'reports': reports,
+        'clips': clips,
+        'comments': comments,
+        'replies': replies,
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def admin_report_resolve(request, report_id):
+    """Mark a clip report resolved (or reopen it when resolved is omitted/toggled)."""
+    try:
+        rep = ClipReport.objects.select_related('clip').get(pk=report_id)
+    except ClipReport.DoesNotExist:
+        return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    resolved = request.data.get('resolved')
+    rep.resolved = (not rep.resolved) if resolved is None else bool(resolved)
+    rep.save(update_fields=['resolved'])
+    log_audit(
+        request.user, 'moderation',
+        f"{'Resolved' if rep.resolved else 'Reopened'} report #{rep.id} ({rep.reason})",
+        tmdb_id=rep.clip.tmdb_id, media_type=rep.clip.media_type, request=request,
+    )
+    return Response({'id': rep.id, 'resolved': rep.resolved})
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAdminUser])
+def admin_delete_clip(request, clip_id):
+    """Remove a clip; its reports cascade away with it."""
+    try:
+        clip = Clip.objects.get(pk=clip_id)
+    except Clip.DoesNotExist:
+        return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    caption = (clip.caption or '').strip()[:80] or f'clip #{clip.id}'
+    open_reports = clip.reports.filter(resolved=False).count()
+    tmdb_id, media_type = clip.tmdb_id, clip.media_type
+    clip.delete()
+    log_audit(
+        request.user, 'moderation', f"Removed clip: {caption}",
+        tmdb_id=tmdb_id, media_type=media_type, request=request,
+    )
+    return Response({'id': clip_id, 'reports_resolved': open_reports})
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAdminUser])
+def admin_delete_comment(request, comment_id):
+    """Remove a clip comment."""
+    try:
+        comment = ClipComment.objects.select_related('clip', 'user').get(pk=comment_id)
+    except ClipComment.DoesNotExist:
+        return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    body = (comment.body or '').strip()[:80]
+    clip_id = comment.clip_id
+    author = comment.user.username
+    comment.delete()
+    log_audit(
+        request.user, 'moderation',
+        f"Removed comment by @{author}: {body or 'empty'} on clip #{clip_id}",
+        request=request,
+    )
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAdminUser])
+def admin_delete_reply(request, reply_id):
+    """Remove a review reply."""
+    try:
+        reply = ReviewReply.objects.select_related('log').get(pk=reply_id)
+    except ReviewReply.DoesNotExist:
+        return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    body = (reply.body or '').strip()[:80]
+    tmdb_id, media_type = reply.log.tmdb_id, reply.log.media_type
+    reply.delete()
+    log_audit(
+        request.user, 'moderation', f"Removed reply: {body or 'empty'}",
+        tmdb_id=tmdb_id, media_type=media_type, request=request,
+    )
+    return Response(status=status.HTTP_204_NO_CONTENT)

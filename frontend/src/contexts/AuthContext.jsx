@@ -54,8 +54,19 @@ export function AuthProvider({ children }) {
     setUser(null)
   }, [])
 
+  const refreshUser = useCallback(async () => {
+    const token = localStorage.getItem('madflix_token')
+    if (!token) return
+    try {
+      const res = await fetch(`${API}/auth/me/`, { headers: { Authorization: `Token ${token}` } })
+      if (!res.ok) return
+      const data = await res.json()
+      setUser({ ...data, is_admin: data.is_staff })
+    } catch { /* keep existing user */ }
+  }, [])
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )

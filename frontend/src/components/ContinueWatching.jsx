@@ -26,8 +26,8 @@ export default function ContinueWatching() {
         {items.map((item) => {
           const kind = item.media_type === 'tv' ? 'show' : 'movie'
           const to = kind === 'show'
-            ? `/shows/${item.tmdb_id}?s=${item.season || 1}&e=${item.episode || 1}`
-            : `/movies/${item.tmdb_id}`
+            ? `/show/${item.tmdb_id}?s=${item.season || 1}&e=${item.episode || 1}`
+            : `/movie/${item.tmdb_id}`
           const progressPct = item.duration_seconds > 0
             ? Math.round((item.position_seconds / item.duration_seconds) * 100)
             : 0
