@@ -5614,3 +5614,13 @@ button, a, [role="button"] { touch-action: manipulation; }
   font-weight: 900;
   letter-spacing: 0.04em;
 }
+
+/* ============ DESKTOP NAV / SEARCH CLEANUP ============ */
+@media (min-width: 720px) {
+  .bottom-nav {
+    display: none !important;
+  }
+  .search-page .search-filter-bar {
+    display: none;
+  }
+}
