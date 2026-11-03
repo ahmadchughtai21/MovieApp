@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { buildImageUrl } from '../lib/image'
 import { useImageConfig } from '../lib/imageConfig'
 import Icon from './Icon'
+import ImdbRating from './ImdbRating'
 import { formatRuntime, compactNumber } from '../lib/format'
 
 const INTERVAL = 7000
@@ -120,7 +121,7 @@ export default function AutoHeroSlider({ items, kind = 'movie', limit = 6 }) {
               {year && <span className="hero-meta-item">{year}</span>}
               {rating && (
                 <span className="hero-meta-item hero-meta-rating">
-                  <Icon name="star" size={14} /> {rating}
+                  <ImdbRating value={rating} size="md" />
                 </span>
               )}
               {item.runtime && <span className="hero-meta-item">{formatRuntime(item.runtime)}</span>}

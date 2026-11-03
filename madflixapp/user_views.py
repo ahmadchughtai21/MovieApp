@@ -1,10 +1,12 @@
+from collections import Counter
+
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from django.db.models import Count, Q
 from django.utils import timezone
-from .models import Watchlist, WatchHistory, PlaybackSession, AuditLog, SearchLog, MovieLog, DiaryLike, ReviewReply, ReviewReplyLike, Follow
+from .models import Watchlist, WatchHistory, PlaybackSession, AuditLog, SearchLog, MovieLog, DiaryLike, ReviewReply, ReviewReplyLike, Follow, FriendRequest, DirectMessage, TasteMatch
 from .serializers import (
     WatchlistSerializer, WatchlistCreateSerializer,
     WatchHistorySerializer, WatchHistoryCreateSerializer,
@@ -467,7 +469,13 @@ def review_replies(request, log_id):
     except MovieLog.DoesNotExist:
         return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    replies = log.replies.select_related('user__profile').prefetch_related('likes').all()
+    replies = (
+        log.replies
+        .filter(parent__isnull=True)
+        .select_related('user__profile')
+        .prefetch_related('likes', 'children__user__profile', 'children__likes')
+        .order_by('created_at')
+    )
     return Response(ReviewReplySerializer(replies, many=True, context={'request': request}).data)
 
 
@@ -484,9 +492,18 @@ def review_reply_create(request, log_id):
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    parent_id = request.data.get('parent_id')
+    parent = None
+    if parent_id:
+        try:
+            parent = ReviewReply.objects.get(id=int(parent_id), log=log)
+        except (TypeError, ValueError, ReviewReply.DoesNotExist):
+            return Response({'error': 'Invalid parent reply.'}, status=status.HTTP_400_BAD_REQUEST)
+
     reply = ReviewReply.objects.create(
         user=request.user,
         log=log,
+        parent=parent,
         body=serializer.validated_data['body'],
     )
     AuditLog.objects.create(
@@ -550,12 +567,61 @@ def public_profile(request, username):
     total = logs.count()
     avg = logs.aggregate(avg=DAvg('rating'))['avg']
     this_year = logs.filter(watched_date__year=timezone.now().year).count()
+    reviews_count = logs.exclude(Q(review='') | Q(review__isnull=True)).count()
     recent = logs.select_related('user').prefetch_related('likes', 'replies')[:10]
+
+    profile_extras = {
+        field: getattr(profile, field, None)
+        for field in (
+            'bio',
+            'letterboxd_username',
+            'fav_film_1_id',
+            'fav_film_2_id',
+            'fav_film_3_id',
+            'fav_film_4_id',
+            'fav_film_1_poster',
+            'fav_film_2_poster',
+            'fav_film_3_poster',
+            'fav_film_4_poster',
+            'fav_director_id',
+            'fav_director_name',
+            'fav_actor_id',
+            'fav_actor_name',
+            'profile_accent_color',
+            'is_founding_member',
+            'age',
+        )
+    } if profile else {}
+
+    friend_status = 'none'
+    friend_request_id = None
+    if request.user.is_authenticated and request.user.id != target_user.id:
+        incoming = FriendRequest.objects.filter(
+            sender=target_user, recipient=request.user
+        ).first()
+        outgoing = FriendRequest.objects.filter(
+            sender=request.user, recipient=target_user
+        ).first()
+        if incoming and incoming.status == 'pending':
+            friend_status = 'pending_incoming'
+            friend_request_id = incoming.id
+        elif incoming and incoming.status == 'accepted':
+            friend_status = 'friends'
+        elif outgoing and outgoing.status == 'accepted':
+            friend_status = 'friends'
+        elif outgoing and outgoing.status == 'pending':
+            friend_status = 'pending_outgoing'
 
     return Response({
         'username': target_user.username,
+        'friend_status': friend_status,
+        'friend_request_id': friend_request_id,
         'display_name': (profile.display_name if profile else '') or target_user.username,
         'avatar_url': profile.avatar_url if profile else '',
+        'is_vip': bool(profile and profile.is_vip),
+        'location_city': profile.location_city if profile else '',
+        'location_country': profile.location_country if profile else '',
+        **profile_extras,
         'date_joined': target_user.date_joined,
         'is_me': request.user.is_authenticated and request.user.id == target_user.id,
         'followers_count': target_user.followers.count(),
@@ -568,6 +634,7 @@ def public_profile(request, username):
             'total_logged': total,
             'avg_rating': float(avg) if avg is not None else None,
             'this_year': this_year,
+            'reviews': reviews_count,
         },
         'recent': MovieLogSerializer(recent, many=True, context={'request': request}).data,
     })
@@ -636,6 +703,8 @@ def _user_card(u):
         'username': u.username,
         'display_name': (profile.display_name if profile else '') or u.username,
         'avatar_url': profile.avatar_url if profile else '',
+        'is_founding_member': bool(profile and profile.is_founding_member),
+        'is_vip': bool(profile and profile.is_vip),
     }
 
 
@@ -672,7 +741,7 @@ def follow_toggle(request, username):
 
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def feed(request):
     """Chronological activity: diary logs that carry a review or a rating.
 
@@ -723,31 +792,84 @@ def feed(request):
 
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def suggested_users(request):
-    """Most active users the current user doesn't follow yet."""
+    """People to follow, prioritising mutual friends and the same city."""
     from django.contrib.auth.models import User as DjangoUser
     from django.db.models import Count as DCount
-    if request.user.is_authenticated:
-        already = set(
-            Follow.objects.filter(follower=request.user).values_list('following_id', flat=True)
-        )
-        already.add(request.user.id)
-    else:
-        already = set()
-    users = (
-        DjangoUser.objects.annotate(log_count=DCount('movie_logs'))
-        .filter(log_count__gt=0)
-        .exclude(id__in=already)
-        .order_by('-log_count')[:8]
+
+    following_ids = set(
+        Follow.objects.filter(follower=request.user).values_list('following_id', flat=True)
     )
-    return Response([
-        {**_user_card(u), 'log_count': u.log_count} for u in users
-    ])
+    request_ids = set()
+    for row in FriendRequest.objects.filter(
+        Q(sender=request.user) | Q(recipient=request.user)
+    ):
+        request_ids.add(row.sender_id)
+        request_ids.add(row.recipient_id)
+
+    excluded = following_ids | request_ids | {request.user.id}
+
+    mutual_counts = Counter(
+        Follow.objects
+        .filter(follower_id__in=following_ids)
+        .exclude(following_id__in=excluded)
+        .values_list('following_id', flat=True)
+    )
+
+    my_profile = getattr(request.user, 'profile', None)
+    my_city = (my_profile.location_city if my_profile else '') or ''
+
+    candidates = (
+        DjangoUser.objects
+        .exclude(id__in=excluded)
+        .select_related('profile')
+        .annotate(log_count=DCount('movie_logs'))
+    )
+
+    scored = []
+    for candidate in candidates:
+        profile = getattr(candidate, 'profile', None)
+        same_city = bool(
+            my_city and profile and profile.location_city
+            and profile.location_city.lower() == my_city.lower()
+        )
+        mutual = mutual_counts.get(candidate.id, 0)
+        if mutual == 0 and not same_city and candidate.log_count == 0:
+            continue
+
+        if mutual > 0:
+            reason = f'{mutual} mutual friend' + ('s' if mutual > 1 else '')
+        elif same_city:
+            reason = f'From {profile.location_city}'
+        else:
+            reason = 'Active on Madflix'
+
+        scored.append((
+            mutual,
+            1 if same_city else 0,
+            candidate.log_count,
+            {
+                'id': candidate.id,
+                'username': candidate.username,
+                'display_name': (profile.display_name if profile else '') or candidate.username,
+                'avatar_url': profile.avatar_url if profile else '',
+                'is_founding_member': bool(profile and profile.is_founding_member),
+                'is_vip': bool(profile and profile.is_vip),
+                'location_city': profile.location_city if profile else '',
+                'log_count': candidate.log_count,
+                'mutual_count': mutual,
+                'same_city': same_city,
+                'reason': reason,
+            },
+        ))
+
+    scored.sort(key=lambda row: (-row[0], -row[1], -row[2]))
+    return Response([row[3] for row in scored[:8]])
 
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def search_users(request):
     """Search Madflix members by username or display name."""
     from django.contrib.auth.models import User as DjangoUser
@@ -762,3 +884,129 @@ def search_users(request):
         .order_by('username')[:12]
     )
     return _follow_list_response(request, users)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def social_followers(request):
+    """Accepted connections for DMs (mutual swipes or accepted friend requests)."""
+    from django.contrib.auth.models import User as DjangoUser
+
+    accepted = FriendRequest.objects.filter(
+        Q(sender=request.user) | Q(recipient=request.user),
+        status='accepted',
+    )
+    accepted_ids = set()
+    for row in accepted:
+        accepted_ids.add(row.sender_id)
+        accepted_ids.add(row.recipient_id)
+    accepted_ids.discard(request.user.id)
+
+    dm_partner_ids = set(
+        DirectMessage.objects
+        .filter(Q(sender=request.user) | Q(recipient=request.user))
+        .values_list('sender_id', 'recipient_id')
+    )
+    dm_ids = set()
+    for sender_id, recipient_id in dm_partner_ids:
+        dm_ids.add(sender_id)
+        dm_ids.add(recipient_id)
+    dm_ids.discard(request.user.id)
+
+    partner_ids = accepted_ids | dm_ids
+
+    matches = {
+        match.user_b_id: match.match_percentage
+        for match in TasteMatch.objects.filter(user_a=request.user)
+    }
+
+    users = (
+        DjangoUser.objects.filter(id__in=partner_ids)
+        .select_related('profile')
+        .order_by('username')
+    )
+
+    data = []
+    for user in users:
+        profile = getattr(user, 'profile', None)
+        last = (
+            DirectMessage.objects
+            .filter(Q(sender=request.user, recipient=user) | Q(sender=user, recipient=request.user))
+            .order_by('-created_at')
+            .first()
+        )
+        data.append({
+            'id': user.id,
+            'username': user.username,
+            'display_name': (profile.display_name if profile else '') or user.username,
+            'avatar_url': profile.avatar_url if profile else '',
+            'is_founding_member': bool(profile and profile.is_founding_member),
+            'can_message': user.id in accepted_ids,
+            'match_percentage': matches.get(user.id, 50),
+            'last_message': last.message if last else '',
+            'last_message_at': last.created_at.isoformat() if last else '',
+            'unread_count': DirectMessage.objects.filter(
+                sender=user, recipient=request.user, is_read=False
+            ).count(),
+        })
+
+    data.sort(key=lambda item: item['last_message_at'] or '', reverse=True)
+    return Response(data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def dm_conversation(request, user_id):
+    """Conversation history between the current user and another user."""
+    from django.contrib.auth.models import User as DjangoUser
+
+    try:
+        other = DjangoUser.objects.get(pk=user_id)
+    except DjangoUser.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    messages = DirectMessage.objects.filter(
+        Q(sender=request.user, recipient=other) | Q(sender=other, recipient=request.user)
+    ).order_by('created_at')
+
+    DirectMessage.objects.filter(
+        sender=other, recipient=request.user, is_read=False
+    ).update(is_read=True)
+
+    return Response([
+        {
+            'id': message.id,
+            'sender_id': message.sender_id,
+            'sender_username': message.sender.username,
+            'message': message.message,
+            'tmdb_id': message.tmdb_id,
+            'media_type': message.media_type,
+            'is_read': message.is_read,
+            'created_at': message.created_at.isoformat(),
+        }
+        for message in messages.select_related('sender')
+    ])
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def review_detail(request, log_id):
+    """Single review with its nested reply tree."""
+    try:
+        log = MovieLog.objects.select_related('user__profile').get(id=log_id)
+    except MovieLog.DoesNotExist:
+        return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    replies = (
+        log.replies
+        .filter(parent__isnull=True)
+        .select_related('user__profile')
+        .prefetch_related('likes', 'children__user__profile', 'children__likes')
+        .order_by('created_at')
+    )
+
+    data = MovieLogSerializer(log, context={'request': request}).data
+    data['replies'] = ReviewReplySerializer(
+        replies, many=True, context={'request': request}
+    ).data
+    return Response(data, status=status.HTTP_200_OK)

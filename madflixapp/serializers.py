@@ -44,11 +44,44 @@ class GenreDiscoverSerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
     display_name = serializers.SerializerMethodField()
     avatar_url = serializers.SerializerMethodField()
+    location_city = serializers.SerializerMethodField()
+    location_country = serializers.SerializerMethodField()
+    is_vip = serializers.SerializerMethodField()
     is_staff = serializers.BooleanField(read_only=True)
+
+    PROFILE_EXTRA_FIELDS = (
+        'bio',
+        'letterboxd_username',
+        'fav_film_1_id',
+        'fav_film_2_id',
+        'fav_film_3_id',
+        'fav_film_4_id',
+        'fav_film_1_poster',
+        'fav_film_2_poster',
+        'fav_film_3_poster',
+        'fav_film_4_poster',
+        'fav_director_id',
+        'fav_director_name',
+        'fav_actor_id',
+        'fav_actor_name',
+        'profile_accent_color',
+        'is_founding_member',
+        'age',
+    )
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'is_staff', 'display_name', 'avatar_url', 'date_joined']
+        fields = [
+            'id', 'username', 'email', 'is_staff', 'display_name', 'avatar_url',
+            'location_city', 'location_country', 'is_vip', 'date_joined',
+        ]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        profile = getattr(instance, 'profile', None)
+        for field in self.PROFILE_EXTRA_FIELDS:
+            data[field] = getattr(profile, field, None) if profile else None
+        return data
 
     def get_display_name(self, obj):
         if hasattr(obj, 'profile'):
@@ -60,6 +93,21 @@ class UserSerializer(serializers.ModelSerializer):
             return obj.profile.avatar_url
         return ''
 
+    def get_location_city(self, obj):
+        if hasattr(obj, 'profile'):
+            return obj.profile.location_city
+        return ''
+
+    def get_location_country(self, obj):
+        if hasattr(obj, 'profile'):
+            return obj.profile.location_country
+        return ''
+
+    def get_is_vip(self, obj):
+        if hasattr(obj, 'profile'):
+            return obj.profile.is_vip
+        return False
+
 
 class RegisterSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150, min_length=3)
@@ -67,6 +115,9 @@ class RegisterSerializer(serializers.Serializer):
     password2 = serializers.CharField(min_length=6, write_only=True)
     display_name = serializers.CharField(max_length=100, required=False, default='')
     email = serializers.EmailField(required=False, default='')
+    age = serializers.IntegerField(min_value=13, max_value=120)
+    location_city = serializers.CharField(max_length=100, default='Lahore')
+    location_country = serializers.CharField(max_length=100, default='Pakistan')
 
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():
@@ -88,6 +139,23 @@ class ProfileUpdateSerializer(serializers.Serializer):
     email = serializers.EmailField(required=False, allow_blank=True)
     display_name = serializers.CharField(max_length=100, required=False, allow_blank=True)
     avatar_url = serializers.CharField(max_length=500, required=False, allow_blank=True)
+    location_city = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    location_country = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    bio = serializers.CharField(max_length=250, required=False, allow_blank=True)
+    letterboxd_username = serializers.CharField(max_length=50, required=False, allow_blank=True)
+    fav_film_1_id = serializers.IntegerField(required=False, allow_null=True)
+    fav_film_2_id = serializers.IntegerField(required=False, allow_null=True)
+    fav_film_3_id = serializers.IntegerField(required=False, allow_null=True)
+    fav_film_4_id = serializers.IntegerField(required=False, allow_null=True)
+    fav_film_1_poster = serializers.CharField(max_length=250, required=False, allow_blank=True, allow_null=True)
+    fav_film_2_poster = serializers.CharField(max_length=250, required=False, allow_blank=True, allow_null=True)
+    fav_film_3_poster = serializers.CharField(max_length=250, required=False, allow_blank=True, allow_null=True)
+    fav_film_4_poster = serializers.CharField(max_length=250, required=False, allow_blank=True, allow_null=True)
+    fav_director_id = serializers.IntegerField(required=False, allow_null=True)
+    fav_director_name = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    fav_actor_id = serializers.IntegerField(required=False, allow_null=True)
+    fav_actor_name = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    profile_accent_color = serializers.CharField(max_length=20, required=False)
 
     def validate_avatar_url(self, value):
         if not value:
@@ -181,17 +249,32 @@ class PlaybackSessionUpdateSerializer(serializers.Serializer):
 # =============================================================================
 
 class MovieLogSerializer(serializers.ModelSerializer):
+    rating = serializers.DecimalField(
+        max_digits=3, decimal_places=1, min_value=0.5, max_value=5,
+        required=False, allow_null=True,
+    )
     username = serializers.SerializerMethodField()
     display_name = serializers.SerializerMethodField()
     avatar_url = serializers.SerializerMethodField()
     like_count = serializers.SerializerMethodField()
     liked_by_me = serializers.SerializerMethodField()
     reply_count = serializers.SerializerMethodField()
+    is_founding_member = serializers.SerializerMethodField()
+    is_vip = serializers.SerializerMethodField()
 
     class Meta:
         model = MovieLog
         fields = ['id', 'tmdb_id', 'media_type', 'rating', 'review', 'watched_date', 'created_at',
-                  'username', 'display_name', 'avatar_url', 'like_count', 'liked_by_me', 'reply_count']
+                  'username', 'display_name', 'avatar_url', 'is_founding_member', 'is_vip',
+                  'like_count', 'liked_by_me', 'reply_count']
+
+    def get_is_founding_member(self, obj):
+        profile = getattr(obj.user, 'profile', None)
+        return bool(profile and profile.is_founding_member)
+
+    def get_is_vip(self, obj):
+        profile = getattr(obj.user, 'profile', None)
+        return bool(profile and profile.is_vip)
 
     def get_reply_count(self, obj):
         return obj.replies.count()
@@ -220,7 +303,7 @@ class MovieLogSerializer(serializers.ModelSerializer):
 class MovieLogCreateSerializer(serializers.Serializer):
     tmdb_id = serializers.IntegerField()
     media_type = serializers.ChoiceField(['movie', 'tv'])
-    rating = serializers.DecimalField(max_digits=2, decimal_places=1, min_value=0.5, max_value=5, required=False, allow_null=True)
+    rating = serializers.DecimalField(max_digits=3, decimal_places=1, min_value=0.5, max_value=5, required=False, allow_null=True)
     review = serializers.CharField(required=False, allow_blank=True, default='')
     watched_date = serializers.DateField(required=False)
 
@@ -238,10 +321,12 @@ class HashTagSerializer(serializers.ModelSerializer):
 class UserBriefSerializer(serializers.ModelSerializer):
     display_name = serializers.SerializerMethodField()
     avatar_url = serializers.SerializerMethodField()
+    is_founding_member = serializers.SerializerMethodField()
+    is_vip = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'display_name', 'avatar_url']
+        fields = ['id', 'username', 'display_name', 'avatar_url', 'is_founding_member', 'is_vip']
 
     def get_display_name(self, obj):
         profile = getattr(obj, 'profile', None)
@@ -251,15 +336,28 @@ class UserBriefSerializer(serializers.ModelSerializer):
         profile = getattr(obj, 'profile', None)
         return profile.avatar_url if profile else ''
 
+    def get_is_founding_member(self, obj):
+        profile = getattr(obj, 'profile', None)
+        return bool(profile and profile.is_founding_member)
+
+    def get_is_vip(self, obj):
+        profile = getattr(obj, 'profile', None)
+        return bool(profile and profile.is_vip)
+
 
 class ReviewReplySerializer(serializers.ModelSerializer):
     user = UserBriefSerializer(read_only=True)
     like_count = serializers.SerializerMethodField()
     liked_by_me = serializers.SerializerMethodField()
+    parent_id = serializers.IntegerField(read_only=True)
+    children = serializers.SerializerMethodField()
 
     class Meta:
         model = ReviewReply
-        fields = ['id', 'user', 'body', 'created_at', 'like_count', 'liked_by_me']
+        fields = [
+            'id', 'user', 'body', 'created_at', 'like_count', 'liked_by_me',
+            'parent_id', 'children',
+        ]
 
     def get_like_count(self, obj):
         return obj.likes.count()
@@ -269,6 +367,19 @@ class ReviewReplySerializer(serializers.ModelSerializer):
         if request and request.user.is_authenticated:
             return obj.likes.filter(user=request.user).exists()
         return False
+
+    def get_children(self, obj):
+        depth = self.context.get('reply_depth', 0)
+        if depth >= 5:
+            return []
+        children = (
+            obj.children
+            .select_related('user__profile')
+            .prefetch_related('likes')
+            .order_by('created_at')
+        )
+        context = {**self.context, 'reply_depth': depth + 1}
+        return ReviewReplySerializer(children, many=True, context=context).data
 
 
 class ReviewReplyCreateSerializer(serializers.Serializer):

@@ -98,7 +98,8 @@ export default function LogsPage() {
                   const details = movieDetails[log.tmdb_id]
                   const title = details?.title || details?.name || ''
                   const poster = details?.poster_path
-                  const link = log.media_type === 'tv' ? `/show/${log.tmdb_id}` : `/movie/${log.tmdb_id}`
+                  const mediaPath = log.media_type === 'tv' ? `/show/${log.tmdb_id}` : `/movie/${log.tmdb_id}`
+            const link = log.review ? `/review/${log.id}` : mediaPath
 
                   return (
                     <Link key={log.id} to={link} className="diary-entry">

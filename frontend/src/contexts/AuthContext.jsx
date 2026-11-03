@@ -30,11 +30,11 @@ export function AuthProvider({ children }) {
     setUser({ ...data.user, is_admin: data.user.is_staff })
   }, [])
 
-  const register = useCallback(async (username, password, password2, display_name, email) => {
+  const register = useCallback(async (username, password, password2, display_name, email, age, location_city, location_country) => {
     const res = await fetch(`${API}/auth/register/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password, password2, display_name, email }),
+      body: JSON.stringify({ username, password, password2, display_name, email, age, location_city, location_country }),
     })
     const data = await res.json()
     if (!res.ok) {

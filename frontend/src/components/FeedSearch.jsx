@@ -4,6 +4,8 @@ import { api } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 import MediaCard from './MediaCard'
 import Icon from './Icon'
+import FoundingBadge from './FoundingBadge'
+import VipBadge from './VipBadge'
 import Loading from './Loading'
 
 function Avatar({ name, url, size = 36 }) {
@@ -175,7 +177,11 @@ export default function FeedSearch() {
                       <Link to={`/user/${person.username}`} className="feed-search__user-link">
                         <Avatar name={person.display_name} url={person.avatar_url} size={32} />
                         <span className="feed-search__user-info">
-                          <span className="feed-search__user-name">{person.display_name}</span>
+                          <span className="feed-search__user-name">
+                            {person.display_name}
+                            {person.is_founding_member && <FoundingBadge size={10} />}
+                            {person.is_vip && <VipBadge size={9} />}
+                          </span>
                           <span className="feed-search__user-handle">@{person.username}</span>
                         </span>
                       </Link>

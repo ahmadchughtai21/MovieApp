@@ -5,6 +5,8 @@ import { api } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 import Loading from './Loading'
 import AuthPrompt from './AuthPrompt'
+import FoundingBadge from './FoundingBadge'
+import VipBadge from './VipBadge'
 
 function Avatar({ name, url, size = 36 }) {
   if (url) {
@@ -89,7 +91,11 @@ export default function FollowListModal({ username, mode, onClose }) {
                 >
                   <Avatar name={person.display_name} url={person.avatar_url} size={36} />
                   <span className="follow-list__info">
-                    <span className="follow-list__name">{person.display_name}</span>
+                    <span className="follow-list__name">
+                      {person.display_name}
+                      {person.is_founding_member && <FoundingBadge size={10} />}
+                      {person.is_vip && <VipBadge size={9} />}
+                    </span>
                     <span className="follow-list__handle">@{person.username}</span>
                   </span>
                 </Link>

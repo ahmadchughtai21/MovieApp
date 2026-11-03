@@ -34,8 +34,8 @@ export default function MarkAsWatched({ tmdbId, mediaType, title, posterPath, se
         completed: next,
       })
       setWatched(next)
-    } catch (err) {
-      console.error('Mark as watched failed:', err)
+    } catch {
+      // ignore failures
     } finally {
       setLoading(false)
     }

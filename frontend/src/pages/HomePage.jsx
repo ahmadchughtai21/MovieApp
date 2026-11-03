@@ -12,6 +12,7 @@ import RecommendedForYou from '../components/RecommendedForYou'
 import ActivityFeed from '../components/ActivityFeed'
 import FeedSearch from '../components/FeedSearch'
 import ClipsStrip from '../components/ClipsStrip'
+import SuggestedFollow from '../components/SuggestedFollow'
 import Icon from '../components/Icon'
 import { CardSkeleton } from '../components/Loading'
 import ErrorState from '../components/ErrorState'
@@ -23,6 +24,13 @@ function greeting() {
   if (h < 18) return 'Good afternoon'
   return 'Good evening'
 }
+
+const QUICK_LINKS = [
+  { to: '/swipe', label: 'CineSwipe', description: 'Find your taste match', icon: 'heart' },
+  { to: '/communities', label: 'Communities', description: 'Live movie chat', icon: 'globe' },
+  { to: '/messages', label: 'Messages', description: 'Your conversations', icon: 'chat' },
+  { to: '/clips', label: 'Clips', description: 'Moments worth sharing', icon: 'clapper' },
+]
 
 export default function HomePage() {
   useDocumentTitle(null)
@@ -69,6 +77,9 @@ export default function HomePage() {
   const showPopular = data?.shows?.popular?.results || []
   const movieTop = data?.movies?.top_rated?.results || []
   const showTop = data?.shows?.top_rated?.results || []
+  const upcoming = data?.movies?.upcoming?.results || []
+  const airingToday = data?.shows?.airing_today?.results || []
+  const movieGenres = data?.genres?.movies || []
 
   const heroMovies = movieTrending.slice(0, 6)
   const heroShows = showTrending.slice(0, 4)
@@ -78,27 +89,67 @@ export default function HomePage() {
     if (heroShows[i]) heroItems.push({ ...heroShows[i], __kind: 'show' })
   }
 
+  const excludeForRecommendations = [
+    ...movieTrending.slice(0, 14),
+    ...showTrending.slice(0, 14),
+  ].map((item) => item.id)
+
+  const initial = (name || '?').charAt(0).toUpperCase()
+  const accent = user?.profile_accent_color || '#f5b942'
+  const location = [user?.location_city, user?.location_country].filter(Boolean).join(', ')
+
   return (
     <div className="page page--bleed home-page">
       <div className="home-hero">
         <AutoHeroSlider items={heroItems} kind="movie" limit={7} />
       </div>
 
-      <header className="home-strip">
-        <div className="home-strip__text">
-          <p className="home-strip__eyebrow">{user ? greeting() : 'Welcome to Madflix'}</p>
-          <p className="home-strip__title">
-            {user ? `${name}, what did you watch?` : 'Track it. Rate it. Talk about it.'}
-          </p>
+      <section className="home-intro">
+        <div className="home-intro__main">
+          {user ? (
+            user.avatar_url ? (
+              <img
+                className="home-avatar"
+                src={user.avatar_url}
+                alt=""
+                style={{ borderColor: accent, boxShadow: `0 0 0 3px ${accent}33` }}
+              />
+            ) : (
+              <span
+                className="home-avatar home-avatar--initial"
+                style={{ borderColor: accent, boxShadow: `0 0 0 3px ${accent}33`, color: accent }}
+              >
+                {initial}
+              </span>
+            )
+          ) : (
+            <span className="home-avatar home-avatar--initial">M</span>
+          )}
+
+          <div className="home-intro__copy">
+            <p className="home-strip__eyebrow">{user ? greeting() : 'Welcome to Madflix'}</p>
+            <h1 className="home-strip__title">
+              {user ? `${name}, what are we watching?` : 'Track it. Rate it. Talk about it.'}
+            </h1>
+            <p className="home-intro__meta">
+              {user
+                ? [location, user.is_vip ? 'VIP' : ''].filter(Boolean).join(' · ') || 'Your movie universe'
+                : 'Your diary, your people, your next favourite film.'}
+            </p>
+          </div>
         </div>
+
         <div className="home-strip__actions">
           {user ? (
             <>
-              <Link to="/discover" className="btn btn--accent btn--sm">
-                <Icon name="film" size={14} /> Discover
+              <Link to="/swipe" className="btn btn--accent btn--sm">
+                <Icon name="heart" size={14} /> CineSwipe
               </Link>
               <Link to="/diary" className="btn btn-ghost btn--sm">
                 <Icon name="journal" size={14} /> Diary
+              </Link>
+              <Link to="/watchlist" className="btn btn-ghost btn--sm">
+                <Icon name="bookmark" size={14} /> Watchlist
               </Link>
             </>
           ) : (
@@ -108,7 +159,44 @@ export default function HomePage() {
             </>
           )}
         </div>
-      </header>
+      </section>
+
+      {user && (
+        <section className="home-quick" aria-label="Quick access">
+          {QUICK_LINKS.map((item) => (
+            <Link key={item.to} to={item.to} className="home-quick-card">
+              <span className="home-quick-icon"><Icon name={item.icon} size={18} /></span>
+              <span className="home-quick-copy">
+                <strong>{item.label}</strong>
+                <span>{item.description}</span>
+              </span>
+              <Icon name="arrowRight" size={14} />
+            </Link>
+          ))}
+        </section>
+      )}
+
+      {movieGenres.length > 0 && (
+        <section className="home-genres" aria-label="Browse by genre">
+          <div className="home-genres__head">
+            <h2 className="section-title">Browse by mood</h2>
+            <Link to="/discover" className="section-action">
+              All genres <Icon name="arrowRight" size={12} />
+            </Link>
+          </div>
+          <div className="home-genres__row">
+            {movieGenres.slice(0, 10).map((genre) => (
+              <Link
+                key={genre.id}
+                to={`/discover?tab=movie&genre=${genre.id}`}
+                className="genre-chip"
+              >
+                {genre.name}
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="home-feed home-feed--search">
         <FeedSearch />
@@ -119,10 +207,12 @@ export default function HomePage() {
       {user && <ContinueWatching />}
 
       <section className="home-feed">
-        <ActivityFeed limit={15} showSuggested title="Community activity" />
+        <ActivityFeed limit={12} showSuggested={false} title="Community activity" />
       </section>
 
-      {user && <RecommendedForYou />}
+      <SuggestedFollow />
+
+      {user && <RecommendedForYou excludeIds={excludeForRecommendations} />}
 
       <Section
         title="Trending movies"
@@ -150,6 +240,21 @@ export default function HomePage() {
         </MediaRail>
       </Section>
 
+      {upcoming.length > 0 && (
+        <Section
+          title="Coming soon"
+          subtitle="Films heading to a screen near you"
+          action="/discover?tab=movie"
+          actionLabel="See all"
+        >
+          <MediaRail>
+            {upcoming.slice(0, 14).map((item) => (
+              <MediaCard key={`up-${item.id}`} item={item} kind="movie" to={`/movie/${item.id}`} />
+            ))}
+          </MediaRail>
+        </Section>
+      )}
+
       <Section
         title="Popular right now"
         subtitle="Big titles across movies and series"
@@ -165,6 +270,21 @@ export default function HomePage() {
           ))}
         </MediaRail>
       </Section>
+
+      {airingToday.length > 0 && (
+        <Section
+          title="Airing today"
+          subtitle="New episodes waiting for you"
+          action="/discover?tab=tv"
+          actionLabel="See all"
+        >
+          <MediaRail>
+            {airingToday.slice(0, 14).map((item) => (
+              <MediaCard key={`air-${item.id}`} item={item} kind="show" to={`/show/${item.id}`} />
+            ))}
+          </MediaRail>
+        </Section>
+      )}
 
       <Section
         title="Top rated"

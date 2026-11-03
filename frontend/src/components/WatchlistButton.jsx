@@ -34,8 +34,8 @@ export default function WatchlistButton({ tmdbId, mediaType, title, posterPath }
         await api.watchlistAdd({ tmdb_id: tmdbId, media_type: mediaType, title, poster_path: posterPath })
         setInWatchlist(true)
       }
-    } catch (err) {
-      console.error('Watchlist toggle failed:', err)
+    } catch {
+      // ignore failures
     } finally {
       setLoading(false)
     }

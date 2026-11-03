@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../lib/api'
 import Icon from './Icon'
+import FoundingBadge from './FoundingBadge'
+import VipBadge from './VipBadge'
 import AuthPrompt from './AuthPrompt'
 
 function formatTime(dateString) {
@@ -172,7 +174,11 @@ export default function ClipCommentsSheet({ clip, user, onClose, onCountChange }
               </div>
               <div className="cc-body-col">
                 <div className="cc-meta">
-                  <span className="cc-name">{c.user?.display_name || c.user?.username}</span>
+                  <span className="cc-name">
+                    {c.user?.display_name || c.user?.username}
+                    {c.user?.is_founding_member && <FoundingBadge size={10} />}
+                    {c.user?.is_vip && <VipBadge size={9} />}
+                  </span>
                   <span className="cc-time">{formatTime(c.created_at)}</span>
                   {user && c.user?.username === user.username && (
                     <button className="cc-del" onClick={() => remove(c)} aria-label="Delete comment">

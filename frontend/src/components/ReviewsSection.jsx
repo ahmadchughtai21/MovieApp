@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext'
 import StarRating from './StarRating'
 import AuthPrompt from './AuthPrompt'
 import Icon from './Icon'
+import FoundingBadge from './FoundingBadge'
+import VipBadge from './VipBadge'
 
 function formatTime(dateString) {
   const date = new Date(dateString)
@@ -163,6 +165,49 @@ export default function ReviewsSection({ tmdbId, mediaType }) {
     }
   }
 
+  const renderReply = (reply, logId, depth = 0) => (
+    <div key={reply.id} className="rr-item" style={{ marginLeft: Math.min(depth, 4) * 16 }}>
+      <Avatar
+        name={reply.user?.display_name || reply.user?.username}
+        url={reply.user?.avatar_url}
+        size={26}
+      />
+      <div className="rr-body">
+        <div className="rr-meta">
+          <Link to={`/user/${reply.user?.username}`} className="rr-name">
+            {reply.user?.username}
+            {reply.user?.is_founding_member && <FoundingBadge size={10} />}
+            {reply.user?.is_vip && <VipBadge size={9} />}
+          </Link>
+          <span className="rr-time">{formatTime(reply.created_at)}</span>
+          <button
+            className={`rr-like${reply.liked_by_me ? ' rr-like--active' : ''}`}
+            onClick={() => toggleReplyLike(logId, reply)}
+            title={user ? 'Like this reply' : 'Sign in to like'}
+            aria-label="Like reply"
+          >
+            <svg viewBox="0 0 24 24" width="12" height="12" fill={reply.liked_by_me ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+            <span>{reply.like_count || 0}</span>
+          </button>
+          <Link to={`/review/${logId}`} className="rr-reply-link">Reply</Link>
+          {user && reply.user?.username === user.username && (
+            <button
+              className="cc-del"
+              onClick={() => removeReply(logId, reply)}
+              aria-label="Delete reply"
+            >
+              <Icon name="trash" size={12} />
+            </button>
+          )}
+        </div>
+        <p className="rr-text">{reply.body}</p>
+        {(reply.children || []).map((child) => renderReply(child, logId, depth + 1))}
+      </div>
+    </div>
+  )
+
   if (loading) return null
   if (reviews.length === 0) return null
 
@@ -177,12 +222,19 @@ export default function ReviewsSection({ tmdbId, mediaType }) {
           <article key={log.id} className="review-card">
             <Link to={`/user/${log.username}`} className="review-card__user">
               <Avatar name={log.display_name} url={log.avatar_url} />
-              <span className="review-card__name">{log.display_name}</span>
+              <span className="review-card__name">
+                {log.display_name}
+                {log.is_founding_member && <FoundingBadge size={11} />}
+                {log.is_vip && <VipBadge size={10} />}
+              </span>
             </Link>
 
             <div className="review-card__body">
               {log.rating != null && <StarRating value={Number(log.rating)} readonly size="sm" />}
               <p className="review-card__text">{log.review}</p>
+              <Link to={`/review/${log.id}`} className="review-card__more">
+                Read full review <Icon name="arrowRight" size={11} />
+              </Link>
               <div className="review-card__foot">
                 <span className="review-card__date">{log.watched_date}</span>
                 <div className="review-card__actions">
@@ -221,44 +273,7 @@ export default function ReviewsSection({ tmdbId, mediaType }) {
                     <p className="rr-empty">No replies yet.</p>
                   )}
 
-                  {!threadLoading && (repliesByLog[log.id] || []).map((reply) => (
-                    <div key={reply.id} className="rr-item">
-                      <Avatar
-                        name={reply.user?.display_name || reply.user?.username}
-                        url={reply.user?.avatar_url}
-                        size={26}
-                      />
-                      <div className="rr-body">
-                        <div className="rr-meta">
-                          <Link to={`/user/${reply.user?.username}`} className="rr-name">
-                            {reply.user?.username}
-                          </Link>
-                          <span className="rr-time">{formatTime(reply.created_at)}</span>
-                          <button
-                            className={`rr-like${reply.liked_by_me ? ' rr-like--active' : ''}`}
-                            onClick={() => toggleReplyLike(log.id, reply)}
-                            title={user ? 'Like this reply' : 'Sign in to like'}
-                            aria-label="Like reply"
-                          >
-                            <svg viewBox="0 0 24 24" width="12" height="12" fill={reply.liked_by_me ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                            </svg>
-                            <span>{reply.like_count || 0}</span>
-                          </button>
-                          {user && reply.user?.username === user.username && (
-                            <button
-                              className="cc-del"
-                              onClick={() => removeReply(log.id, reply)}
-                              aria-label="Delete reply"
-                            >
-                              <Icon name="trash" size={12} />
-                            </button>
-                          )}
-                        </div>
-                        <p className="rr-text">{reply.body}</p>
-                      </div>
-                    </div>
-                  ))}
+                  {!threadLoading && (repliesByLog[log.id] || []).map((reply) => renderReply(reply, log.id))}
 
                   {threadError && <p className="form-error">{threadError}</p>}
 

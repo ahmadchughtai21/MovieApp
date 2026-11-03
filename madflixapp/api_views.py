@@ -1,12 +1,38 @@
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from django.contrib.auth.models import User
+from django.core.paginator import Paginator
+from django.db.models import Avg, Count, Q
 from django.http import JsonResponse
 from django.core.cache import cache
+from django.utils import timezone
+from django.utils.text import slugify
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import os
 import time
 import requests
+from django.core.files.storage import default_storage
+from .models import (
+    CircleMembership,
+    CircleMessage,
+    ClipComment,
+    ClipLike,
+    DiaryLike,
+    DirectMessage,
+    Follow,
+    FriendRequest,
+    MovieCircle,
+    MovieLog,
+    ReviewReply,
+    ReviewReplyLike,
+    TasteMatch,
+    UserProfile,
+    UserReport,
+    Watchlist,
+)
+from .utils.matching import calculate_taste_match
 from .serializers import (
     GenreSerializer, MovieSearchSerializer, TVSearchSerializer,
     MoviePlayerSerializer, ShowPlayerSerializer, GenreDiscoverSerializer
@@ -1141,7 +1167,26 @@ def api_recommendations(request):
                 WatchHistory.objects.filter(user=user, completed=True).values_list('tmdb_id', flat=True)
             )
 
-            exclude_ids = watchlist_ids | watched_ids
+            # Diary logs are the richest taste signal on Madflix.
+            log_rows = list(
+                MovieLog.objects.filter(user=user)
+                .order_by('-created_at')
+                .values('tmdb_id', 'media_type')[:12]
+            )
+            recent_movies = list(dict.fromkeys(
+                recent_movies + [row['tmdb_id'] for row in log_rows if row['media_type'] == 'movie']
+            ))[:8]
+            recent_shows = list(dict.fromkeys(
+                recent_shows + [row['tmdb_id'] for row in log_rows if row['media_type'] == 'tv']
+            ))[:5]
+
+            exclude_ids = watchlist_ids | watched_ids | {row['tmdb_id'] for row in log_rows}
+            raw_exclude = request.GET.get('exclude', '')
+            for token in raw_exclude.split(','):
+                try:
+                    exclude_ids.add(int(token))
+                except (TypeError, ValueError):
+                    continue
 
             # Fetch recommendations in parallel for recent movies
             movie_recs = {}
@@ -1158,7 +1203,7 @@ def api_recommendations(request):
                             rid = rec.get('id')
                             if rid and rid not in exclude_ids:
                                 if rid not in movie_recs:
-                                    movie_recs[rid] = {**rec, 'rec_count': 0, 'source_type': 'movie'}
+                                    movie_recs[rid] = {**rec, 'rec_count': 0, 'source_type': 'movie', 'media_type': 'movie'}
                                 movie_recs[rid]['rec_count'] += 1
                     except Exception:
                         pass
@@ -1178,7 +1223,7 @@ def api_recommendations(request):
                             rid = rec.get('id')
                             if rid and rid not in exclude_ids:
                                 if rid not in show_recs:
-                                    show_recs[rid] = {**rec, 'rec_count': 0, 'source_type': 'tv'}
+                                    show_recs[rid] = {**rec, 'rec_count': 0, 'source_type': 'tv', 'media_type': 'tv'}
                                 show_recs[rid]['rec_count'] += 1
                     except Exception:
                         pass
@@ -1191,32 +1236,58 @@ def api_recommendations(request):
                 reverse=True
             )
 
-            # If we have enough personalized recs, return them
-            if len(rec_list) >= 10:
-                return Response({
-                    'results': rec_list[:40],
-                    'source': 'personalized',
-                    'total': len(rec_list),
-                }, status=status.HTTP_200_OK)
+            rec_list = [item for item in rec_list if item.get('id') not in exclude_ids]
 
-        # Fallback: trending + popular for logged-out users or insufficient history
-        trending = make_tmdb_request('/trending/movie/week')
-        popular = make_tmdb_request('/movie/popular')
-
+        # Fallback pool deliberately avoids /trending so it never mirrors the home rails.
+        fallback_sources = [
+            ('/movie/top_rated', 'movie', 1),
+            ('/movie/top_rated', 'movie', 2),
+            ('/movie/upcoming', 'movie', 1),
+            ('/movie/upcoming', 'movie', 2),
+            ('/tv/top_rated', 'tv', 1),
+            ('/tv/popular', 'tv', 1),
+            ('/tv/popular', 'tv', 2),
+            ('/movie/now_playing', 'movie', 1),
+            ('/tv/on_the_air', 'tv', 1),
+        ]
         fallback = []
         seen = set()
-        for item in (trending.get('results') or [])[:20]:
-            if item.get('id') not in seen:
-                fallback.append(item)
-                seen.add(item['id'])
-        for item in (popular.get('results') or [])[:20]:
-            if item.get('id') not in seen:
-                fallback.append(item)
-                seen.add(item['id'])
+        exclude_ids = locals().get('exclude_ids', set())
+        for endpoint, media_type, page in fallback_sources:
+            payload = make_tmdb_request(endpoint, {'page': page})
+            for item in (payload.get('results') or []):
+                item_id = item.get('id')
+                if not item_id or item_id in seen or item_id in exclude_ids:
+                    continue
+                seen.add(item_id)
+                fallback.append({**item, 'media_type': media_type})
+
+        # Last resort: never leave the user with an empty recommendations rail.
+        if not fallback:
+            payload = make_tmdb_request('/movie/top_rated', {'page': 1})
+            fallback = [
+                {**item, 'media_type': 'movie'}
+                for item in (payload.get('results') or [])[:20]
+            ]
+
+        if user.is_authenticated and locals().get('rec_list'):
+            merged = []
+            merged_ids = set()
+            for item in rec_list + fallback:
+                item_id = item.get('id')
+                if not item_id or item_id in merged_ids:
+                    continue
+                merged_ids.add(item_id)
+                merged.append(item)
+            return Response({
+                'results': merged[:40],
+                'source': 'personalized',
+                'total': len(merged),
+            }, status=status.HTTP_200_OK)
 
         return Response({
             'results': fallback[:40],
-            'source': 'trending',
+            'source': 'fallback',
             'total': len(fallback),
         }, status=status.HTTP_200_OK)
 
@@ -1332,3 +1403,1091 @@ def api_show_recommendations(request, show_id):
             {"error": "Failed to fetch show recommendations", "details": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+LOCAL_CITY_SUGGESTIONS = [
+    ('Lahore', 'Pakistan'), ('Karachi', 'Pakistan'), ('Islamabad', 'Pakistan'),
+    ('Rawalpindi', 'Pakistan'), ('Faisalabad', 'Pakistan'), ('Multan', 'Pakistan'),
+    ('Peshawar', 'Pakistan'), ('Quetta', 'Pakistan'), ('Hyderabad', 'Pakistan'),
+    ('Sialkot', 'Pakistan'), ('Gujranwala', 'Pakistan'), ('Bahawalpur', 'Pakistan'),
+    ('Sargodha', 'Pakistan'), ('Abbottabad', 'Pakistan'), ('Murree', 'Pakistan'),
+    ('Sukkur', 'Pakistan'), ('Larkana', 'Pakistan'), ('Mardan', 'Pakistan'),
+    ('Kasur', 'Pakistan'), ('Okara', 'Pakistan'), ('Jhelum', 'Pakistan'),
+    ('Gujrat', 'Pakistan'), ('Sahiwal', 'Pakistan'), ('Rahim Yar Khan', 'Pakistan'),
+    ('Dera Ghazi Khan', 'Pakistan'), ('Vehari', 'Pakistan'), ('Chiniot', 'Pakistan'),
+    ('Sheikhupura', 'Pakistan'), ('Jhang', 'Pakistan'), ('Lahore Cantt', 'Pakistan'),
+    ('Dubai', 'United Arab Emirates'), ('London', 'United Kingdom'),
+    ('New York', 'United States'), ('Toronto', 'Canada'), ('Sydney', 'Australia'),
+]
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def city_search(request):
+    """Search cities through Nominatim, cached for 24 hours."""
+    query = (request.GET.get('q') or '').strip()
+    if not query:
+        return Response([], status=status.HTTP_200_OK)
+
+    cache_key = f'city_search:v3:{query.lower()}'
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return Response(cached, status=status.HTTP_200_OK)
+
+    needle = query.lower()
+    results = []
+    seen = set()
+
+    for city, country in LOCAL_CITY_SUGGESTIONS:
+        if needle in city.lower():
+            key = (city.lower(), country.lower())
+            seen.add(key)
+            results.append({'city': city, 'country': country})
+
+    try:
+        response = requests.get(
+            'https://nominatim.openstreetmap.org/search?accept-language=en',
+            params={
+                'format': 'json',
+                'addressdetails': 1,
+                'q': query,
+                'type': 'city',
+            },
+            headers={'User-Agent': 'MadflixApp/1.0'},
+            timeout=10,
+        )
+        response.raise_for_status()
+        payload = response.json()
+    except (requests.exceptions.RequestException, ValueError):
+        return Response([], status=status.HTTP_200_OK)
+
+    for item in payload:
+        address = item.get('address') or {}
+        city = (
+            address.get('city')
+            or address.get('town')
+            or address.get('village')
+            or address.get('municipality')
+            or address.get('county')
+            or item.get('name')
+            or ''
+        ).strip()
+        country = (address.get('country') or '').strip()
+        if not city:
+            continue
+        key = (city.lower(), country.lower())
+        if key in seen:
+            continue
+        seen.add(key)
+        results.append({'city': city, 'country': country})
+
+    cache.set(cache_key, results, 60 * 60 * 24)
+    return Response(results, status=status.HTTP_200_OK)
+
+
+def _recent_logs(user, limit=4):
+    logs = list(
+        MovieLog.objects.filter(user=user).order_by('-created_at')[:limit]
+    )
+    tmdb_ids = [log.tmdb_id for log in logs]
+    saved = {
+        item.tmdb_id: item
+        for item in Watchlist.objects.filter(user=user, tmdb_id__in=tmdb_ids)
+    }
+    result = []
+    for log in logs:
+        item = saved.get(log.tmdb_id)
+        title = item.title if item else ''
+        poster_path = item.poster_path if item else ''
+
+        if not title or not poster_path:
+            endpoint = f'/tv/{log.tmdb_id}' if log.media_type == 'tv' else f'/movie/{log.tmdb_id}'
+            data = make_tmdb_request(endpoint)
+            if isinstance(data, dict) and not data.get('error'):
+                title = title or data.get('title') or data.get('name') or ''
+                poster_path = poster_path or data.get('poster_path') or ''
+
+        result.append({
+            'tmdb_id': log.tmdb_id,
+            'title': title,
+            'poster_path': poster_path,
+        })
+    return result
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def swipe_discover(request):
+    """Discover people by taste; same-city profiles come first, then other cities."""
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    city = (profile.location_city or '').strip().lower()
+
+    followed_ids = Follow.objects.filter(
+        follower=request.user
+    ).values_list('following_id', flat=True)
+    outgoing_ids = set(
+        FriendRequest.objects
+        .filter(sender=request.user, status='pending')
+        .values_list('recipient_id', flat=True)
+    )
+    accepted_ids = set()
+    for row in FriendRequest.objects.filter(
+        Q(sender=request.user) | Q(recipient=request.user),
+        status='accepted',
+    ):
+        accepted_ids.add(row.sender_id)
+        accepted_ids.add(row.recipient_id)
+    incoming_ids = set(
+        FriendRequest.objects
+        .filter(recipient=request.user, status='pending')
+        .values_list('sender_id', flat=True)
+    )
+
+    excluded_ids = set(followed_ids) | outgoing_ids | accepted_ids
+
+    candidates = (
+        UserProfile.objects
+        .exclude(user=request.user)
+        .exclude(user_id__in=excluded_ids)
+        .select_related('user')
+        .order_by('-is_vip', 'user_id')[:200]
+    )
+
+    results = []
+    for candidate in candidates:
+        match = TasteMatch.objects.filter(
+            user_a=request.user, user_b=candidate.user
+        ).first()
+        if match is None:
+            try:
+                match = calculate_taste_match(request.user, candidate.user)
+            except Exception:
+                match = None
+
+        candidate_city = (candidate.location_city or '').strip()
+        same_city = bool(city and candidate_city.lower() == city)
+        stats = MovieLog.objects.filter(user=candidate.user).aggregate(
+            avg_rating=Avg('rating'),
+            total_logged=Count('id'),
+        )
+        results.append({
+            'id': candidate.user_id,
+            'username': candidate.user.username,
+            'display_name': candidate.user.profile.display_name or candidate.user.username,
+            'avatar_url': candidate.avatar_url,
+            'location_city': candidate_city,
+            'same_city': same_city,
+            'likes_you': candidate.user_id in incoming_ids,
+            'is_vip': bool(candidate.is_vip),
+            'bio': candidate.bio,
+            'fav_director_name': candidate.fav_director_name,
+            'fav_actor_name': candidate.fav_actor_name,
+            'avg_rating': float(stats['avg_rating']) if stats['avg_rating'] is not None else None,
+            'total_logged': stats['total_logged'] or 0,
+            'match_percentage': match.match_percentage if match else 50,
+            'recent_logs': _recent_logs(candidate.user),
+        })
+
+    results.sort(
+        key=lambda item: (1 if item['same_city'] else 0, item['match_percentage']),
+        reverse=True,
+    )
+    return Response(results, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def swipe_action(request):
+    """Record a swipe, enforcing the daily limit for non-VIP users."""
+    target_user_id = request.data.get('target_user_id')
+    action = request.data.get('action')
+
+    if action not in ('left', 'right', 'super'):
+        return Response(
+            {'error': 'Invalid action.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        target_user_id = int(target_user_id)
+    except (TypeError, ValueError):
+        return Response(
+            {'error': 'Invalid target_user_id.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if target_user_id == request.user.id:
+        return Response(
+            {'error': 'Cannot swipe on yourself.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if not User.objects.filter(pk=target_user_id).exists():
+        return Response(
+            {'error': 'Target user not found.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    today = timezone.now().date()
+
+    if profile.last_swipe_date != today:
+        profile.daily_swipes_count = 0
+
+    if action == 'super' and not profile.is_vip:
+        return Response(
+            {'error': 'Super swipe is a VIP perk.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    if not profile.is_vip and profile.daily_swipes_count >= 10:
+        return Response(
+            {'error': 'Daily swipe limit reached. Upgrade to VIP.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    profile.daily_swipes_count += 1
+    profile.last_swipe_date = today
+    profile.save(update_fields=['daily_swipes_count', 'last_swipe_date'])
+
+    matched = False
+    if action in ('right', 'super'):
+        incoming = FriendRequest.objects.filter(
+            sender_id=target_user_id,
+            recipient=request.user,
+            status='pending',
+        ).first()
+        if incoming is not None:
+            incoming.status = 'accepted'
+            incoming.responded_at = timezone.now()
+            incoming.save(update_fields=['status', 'responded_at'])
+            Follow.objects.get_or_create(follower=request.user, following_id=target_user_id)
+            Follow.objects.get_or_create(follower_id=target_user_id, following=request.user)
+            matched = True
+        else:
+            FriendRequest.objects.get_or_create(
+                sender=request.user,
+                recipient_id=target_user_id,
+                defaults={'status': 'pending'},
+            )
+
+    swipes_remaining = (
+        'unlimited' if profile.is_vip else max(0, 10 - profile.daily_swipes_count)
+    )
+    return Response(
+        {'success': True, 'swipes_remaining': swipes_remaining, 'matched': matched},
+        status=status.HTTP_200_OK,
+    )
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def tmdb_person_search(request):
+    """Search TMDB people for actor/director pickers."""
+    query = (request.GET.get('q') or '').strip()
+    if not query:
+        return Response([], status=status.HTTP_200_OK)
+
+    data = make_tmdb_request('/search/person', {
+        'query': query,
+        'include_adult': 'false',
+    })
+    results = data.get('results', []) if isinstance(data, dict) else []
+
+    return Response([
+        {
+            'id': person.get('id'),
+            'name': person.get('name', ''),
+            'profile_path': person.get('profile_path'),
+            'known_for_department': person.get('known_for_department', ''),
+        }
+        for person in results[:20]
+    ], status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def tmdb_person_details(request, person_id):
+    """Fetch a TMDB person for favorite director/actor cards."""
+    data = make_tmdb_request(f'/person/{person_id}')
+    if not isinstance(data, dict) or data.get('error') or not data.get('id'):
+        return Response({'error': 'Person not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    return Response({
+        'id': data.get('id'),
+        'name': data.get('name', ''),
+        'profile_path': data.get('profile_path'),
+        'known_for_department': data.get('known_for_department', ''),
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def tmdb_movie_posters(request, movie_id):
+    """Return alternative posters for a movie."""
+    data = make_tmdb_request(f'/movie/{movie_id}/images')
+    posters = data.get('posters', []) if isinstance(data, dict) else []
+
+    return Response([
+        {
+            'file_path': poster.get('file_path'),
+            'aspect_ratio': poster.get('aspect_ratio'),
+        }
+        for poster in posters
+        if poster.get('file_path')
+    ], status=status.HTTP_200_OK)
+
+
+DEFAULT_COMMUNITIES = [
+    {
+        'slug': 'nolan-universe',
+        'name': 'Nolan Universe',
+        'description': 'Time loops, practical effects, and IMAX obsession.',
+        'genre_tag': 'Sci-Fi',
+    },
+    {
+        'slug': 'a24-horror-vault',
+        'name': 'A24 Horror Vault',
+        'description': 'Slow-burn dread, folk horror, and everything A24.',
+        'genre_tag': 'Horror',
+    },
+    {
+        'slug': 'desi-cinema-club',
+        'name': 'Desi Cinema Club',
+        'description': 'Lollywood, Bollywood, and regional gems.',
+        'genre_tag': 'South Asian',
+    },
+    {
+        'slug': 'criterion-corner',
+        'name': 'Criterion Corner',
+        'description': 'Classics, restorations, and arthouse deep cuts.',
+        'genre_tag': 'Classics',
+    },
+]
+
+
+def ensure_default_communities():
+    for data in DEFAULT_COMMUNITIES:
+        MovieCircle.objects.get_or_create(slug=data['slug'], defaults={
+            'name': data['name'],
+            'description': data['description'],
+            'genre_tag': data['genre_tag'],
+        })
+
+
+def _sender_card(user):
+    profile = getattr(user, 'profile', None)
+    return {
+        'username': user.username,
+        'display_name': (profile.display_name if profile else '') or user.username,
+        'avatar_url': profile.avatar_url if profile else '',
+        'is_founding_member': bool(profile and profile.is_founding_member),
+        'is_vip': bool(profile and profile.is_vip),
+    }
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def community_list(request):
+    """List all communities with member counts."""
+    ensure_default_communities()
+
+    circles = (
+        MovieCircle.objects
+        .annotate(member_count=Count('memberships', distinct=True))
+        .order_by('name')
+    )
+    member_ids = set(
+        CircleMembership.objects
+        .filter(user=request.user)
+        .values_list('circle_id', flat=True)
+    )
+
+    return Response([
+        _circle_card(circle, request.user, circle.id in member_ids)
+        for circle in circles
+    ], status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def community_messages(request, slug):
+    """Paginated chat history for a community room."""
+    ensure_default_communities()
+
+    circle = MovieCircle.objects.filter(slug=slug).first()
+    if circle is None:
+        return Response({'error': 'Community not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        page_number = max(1, int(request.GET.get('page', 1)))
+    except (TypeError, ValueError):
+        page_number = 1
+    try:
+        page_size = min(max(1, int(request.GET.get('page_size', 30))), 100)
+    except (TypeError, ValueError):
+        page_size = 30
+
+    messages = (
+        CircleMessage.objects
+        .filter(circle=circle)
+        .select_related('sender', 'sender__profile')
+        .order_by('created_at')
+    )
+    paginator = Paginator(messages, page_size)
+    page = paginator.get_page(page_number)
+
+    return Response({
+        'count': paginator.count,
+        'page': page.number,
+        'pages': paginator.num_pages,
+        'results': [
+            {
+                'id': message.id,
+                'created_at': message.created_at.isoformat(),
+                **_sender_card(message.sender),
+                'message': message.message,
+                'tmdb_id': message.tmdb_id,
+                'media_type': message.media_type,
+            }
+            for message in page.object_list
+        ],
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def dm_inbox(request):
+    """Distinct recent conversations for the current user."""
+    messages = (
+        DirectMessage.objects
+        .filter(Q(sender=request.user) | Q(recipient=request.user))
+        .select_related('sender', 'recipient', 'sender__profile', 'recipient__profile')
+        .order_by('-created_at')
+    )
+
+    unread_counts = {
+        row['sender_id']: row['count']
+        for row in DirectMessage.objects
+        .filter(recipient=request.user, is_read=False)
+        .values('sender_id')
+        .annotate(count=Count('id'))
+    }
+    matches = {
+        match.user_b_id: match.match_percentage
+        for match in TasteMatch.objects.filter(user_a=request.user)
+    }
+
+    conversations = []
+    seen = set()
+    for message in messages:
+        partner = message.recipient if message.sender_id == request.user.id else message.sender
+        if partner.id in seen:
+            continue
+        seen.add(partner.id)
+        conversations.append({
+            'user': {
+                'id': partner.id,
+                **_sender_card(partner),
+            },
+            'match_percentage': matches.get(partner.id, 50),
+            'last_message': message.message,
+            'last_message_at': message.created_at.isoformat(),
+            'last_message_is_mine': message.sender_id == request.user.id,
+            'unread_count': unread_counts.get(partner.id, 0),
+        })
+
+    return Response(conversations, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def dm_history(request, target_user_id):
+    """Full conversation between request.user and target user."""
+    try:
+        partner = User.objects.get(pk=target_user_id)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    if partner.id == request.user.id:
+        return Response({'error': 'Cannot message yourself'}, status=status.HTTP_400_BAD_REQUEST)
+
+    queryset = (
+        DirectMessage.objects
+        .filter(
+            Q(sender=request.user, recipient=partner)
+            | Q(sender=partner, recipient=request.user)
+        )
+        .select_related('sender', 'sender__profile')
+        .order_by('created_at')
+    )
+
+    DirectMessage.objects.filter(
+        sender=partner, recipient=request.user, is_read=False
+    ).update(is_read=True)
+
+    return Response([
+        {
+            'id': message.id,
+            'sender_id': message.sender_id,
+            'sender_username': message.sender.username,
+            'sender_avatar': _sender_card(message.sender)['avatar_url'],
+            'message': message.message,
+            'tmdb_id': message.tmdb_id,
+            'media_type': message.media_type,
+            'is_read': True if message.sender_id == partner.id else message.is_read,
+            'created_at': message.created_at.isoformat(),
+        }
+        for message in queryset
+    ], status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def vip_checkout(request):
+    """Simulated VIP checkout. Grants VIP server-side after basic validation."""
+    plan = request.data.get('plan', 'monthly')
+    if plan not in ('monthly', 'yearly'):
+        return Response(
+            {'error': 'Invalid plan.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    payment_method = (request.data.get('payment_method') or 'demo').strip()
+    if not payment_method:
+        return Response(
+            {'error': 'Payment method required.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    if profile.is_vip:
+        return Response({
+            'success': True,
+            'is_vip': True,
+            'plan': plan,
+            'message': 'You are already a VIP member.',
+        }, status=status.HTTP_200_OK)
+
+    profile.is_vip = True
+    profile.save(update_fields=['is_vip'])
+
+    return Response({
+        'success': True,
+        'is_vip': True,
+        'plan': plan,
+        'message': 'Welcome to Madflix VIP.',
+    }, status=status.HTTP_200_OK)
+
+
+def _notification_actor(user):
+    profile = getattr(user, 'profile', None)
+    return {
+        'id': user.id,
+        'username': user.username,
+        'display_name': (profile.display_name if profile else '') or user.username,
+        'avatar_url': profile.avatar_url if profile else '',
+        'is_founding_member': bool(profile and profile.is_founding_member),
+        'is_vip': bool(profile and profile.is_vip),
+    }
+
+
+def _media_link(log):
+    prefix = 'show' if log.media_type == 'tv' else 'movie'
+    return f'/{prefix}/{log.tmdb_id}'
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def notifications_feed(request):
+    """Recent activity involving the current user (follows, likes, replies, clips)."""
+    try:
+        limit = min(max(1, int(request.GET.get('limit', 30))), 100)
+    except (TypeError, ValueError):
+        limit = 30
+
+    items = []
+
+    pending_requests = (
+        FriendRequest.objects
+        .filter(recipient=request.user, status='pending')
+        .select_related('sender', 'sender__profile')
+        .order_by('-created_at')[:limit]
+    )
+    for friend_request in pending_requests:
+        items.append({
+            'id': f'friend-request-{friend_request.id}',
+            'type': 'friend_request',
+            'request_id': friend_request.id,
+            'actor': _notification_actor(friend_request.sender),
+            'message': 'sent you a friend request',
+            'link': f'/user/{friend_request.sender.username}',
+            'created_at': friend_request.created_at.isoformat(),
+        })
+
+    follows = (
+        Follow.objects
+        .filter(following=request.user)
+        .select_related('follower', 'follower__profile')
+        .order_by('-created_at')[:limit]
+    )
+    for follow in follows:
+        items.append({
+            'id': f'follow-{follow.id}',
+            'type': 'follow',
+            'actor': _notification_actor(follow.follower),
+            'message': 'started following you',
+            'link': f'/user/{follow.follower.username}',
+            'created_at': follow.created_at.isoformat(),
+        })
+
+    diary_likes = (
+        DiaryLike.objects
+        .filter(movielog__user=request.user)
+        .exclude(user=request.user)
+        .select_related('user', 'user__profile', 'movielog')
+        .order_by('-created_at')[:limit]
+    )
+    for like in diary_likes:
+        items.append({
+            'id': f'diary-like-{like.id}',
+            'type': 'like',
+            'actor': _notification_actor(like.user),
+            'message': 'liked your review',
+            'link': _media_link(like.movielog),
+            'created_at': like.created_at.isoformat(),
+        })
+
+    replies = (
+        ReviewReply.objects
+        .filter(log__user=request.user)
+        .exclude(user=request.user)
+        .select_related('user', 'user__profile', 'log')
+        .order_by('-created_at')[:limit]
+    )
+    for reply in replies:
+        items.append({
+            'id': f'reply-{reply.id}',
+            'type': 'reply',
+            'actor': _notification_actor(reply.user),
+            'message': 'replied to your review',
+            'link': _media_link(reply.log),
+            'created_at': reply.created_at.isoformat(),
+        })
+
+    reply_likes = (
+        ReviewReplyLike.objects
+        .filter(reply__user=request.user)
+        .exclude(user=request.user)
+        .select_related('user', 'user__profile', 'reply__log')
+        .order_by('-created_at')[:limit]
+    )
+    for like in reply_likes:
+        items.append({
+            'id': f'reply-like-{like.id}',
+            'type': 'like',
+            'actor': _notification_actor(like.user),
+            'message': 'liked your reply',
+            'link': _media_link(like.reply.log),
+            'created_at': like.created_at.isoformat(),
+        })
+
+    clip_likes = (
+        ClipLike.objects
+        .filter(clip__user=request.user)
+        .exclude(user=request.user)
+        .select_related('user', 'user__profile', 'clip')
+        .order_by('-created_at')[:limit]
+    )
+    for like in clip_likes:
+        items.append({
+            'id': f'clip-like-{like.id}',
+            'type': 'like',
+            'actor': _notification_actor(like.user),
+            'message': 'liked your clip',
+            'link': f'/clips/{like.clip_id}',
+            'created_at': like.created_at.isoformat(),
+        })
+
+    clip_comments = (
+        ClipComment.objects
+        .filter(clip__user=request.user)
+        .exclude(user=request.user)
+        .select_related('user', 'user__profile', 'clip')
+        .order_by('-created_at')[:limit]
+    )
+    for comment in clip_comments:
+        items.append({
+            'id': f'clip-comment-{comment.id}',
+            'type': 'comment',
+            'actor': _notification_actor(comment.user),
+            'message': 'commented on your clip',
+            'link': f'/clips/{comment.clip_id}',
+            'created_at': comment.created_at.isoformat(),
+        })
+
+    items.sort(key=lambda item: item['created_at'], reverse=True)
+
+    return Response({
+        'count': len(items),
+        'results': items[:limit],
+    }, status=status.HTTP_200_OK)
+
+
+def _circle_owner_card(circle):
+    owner = circle.owner
+    if owner is None:
+        return None
+    profile = getattr(owner, 'profile', None)
+    return {
+        'id': owner.id,
+        'username': owner.username,
+        'display_name': (profile.display_name if profile else '') or owner.username,
+        'avatar_url': profile.avatar_url if profile else '',
+    }
+
+
+def _circle_card(circle, user, is_member):
+    return {
+        'id': circle.id,
+        'name': circle.name,
+        'slug': circle.slug,
+        'description': circle.description,
+        'genre_tag': circle.genre_tag,
+        'image_url': circle.cover_image or '',
+        'cover_image': circle.cover_image or '',
+        'member_count': getattr(circle, 'member_count', circle.memberships.count()),
+        'is_member': is_member,
+        'owner': _circle_owner_card(circle),
+        'is_owner': bool(circle.owner_id and circle.owner_id == user.id),
+    }
+
+
+def _save_community_cover(upload, slug):
+    if upload is None:
+        return None
+    if upload.size > 8 * 1024 * 1024:
+        return None
+    content_type = getattr(upload, 'content_type', '') or ''
+    if not content_type.startswith('image/'):
+        return None
+    extension = os.path.splitext(upload.name)[1].lower()
+    if extension not in ('.jpg', '.jpeg', '.png', '.webp', '.gif'):
+        extension = '.jpg'
+    path = default_storage.save(
+        f'community_covers/{slug}_{int(time.time())}{extension}',
+        upload,
+    )
+    return default_storage.url(path)
+
+
+def _circle_members(circle, limit=60):
+    memberships = (
+        circle.memberships
+        .select_related('user__profile')
+        .order_by('joined_at')[:limit]
+    )
+    return [
+        {
+            **_notification_actor(membership.user),
+            'is_owner': membership.user_id == circle.owner_id,
+            'joined_at': membership.joined_at.isoformat(),
+        }
+        for membership in memberships
+    ]
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def community_create(request):
+    """Create an open community group; the creator becomes its admin."""
+    ensure_default_communities()
+
+    name = (request.data.get('name') or request.data.get('title') or '').strip()
+    about = (request.data.get('description') or request.data.get('about') or '').strip()
+    genre_tag = (request.data.get('genre_tag') or request.data.get('genre') or 'General').strip()
+
+    if len(name) < 3:
+        return Response({'error': 'Title must be at least 3 characters.'}, status=status.HTTP_400_BAD_REQUEST)
+    if len(name) > 100:
+        return Response({'error': 'Title must be 100 characters or fewer.'}, status=status.HTTP_400_BAD_REQUEST)
+    if len(about) > 500:
+        return Response({'error': 'About must be 500 characters or fewer.'}, status=status.HTTP_400_BAD_REQUEST)
+    if len(genre_tag) > 50:
+        return Response({'error': 'Genre must be 50 characters or fewer.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    base_slug = slugify(name)[:50] or 'community'
+    slug = base_slug
+    suffix = 2
+    while MovieCircle.objects.filter(slug=slug).exists():
+        slug = f'{base_slug}-{suffix}'
+        suffix += 1
+
+    circle = MovieCircle.objects.create(
+        name=name,
+        slug=slug,
+        description=about,
+        genre_tag=genre_tag or 'General',
+        owner=request.user,
+    )
+    CircleMembership.objects.get_or_create(circle=circle, user=request.user)
+
+    cover = request.FILES.get('cover')
+    if cover is not None:
+        cover_url = _save_community_cover(cover, circle.slug)
+        if cover_url:
+            circle.cover_image = cover_url
+            circle.save(update_fields=['cover_image'])
+
+    return Response(
+        _circle_card(circle, request.user, True),
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def community_join(request, slug):
+    """Join an open community group."""
+    ensure_default_communities()
+
+    circle = MovieCircle.objects.filter(slug=slug).first()
+    if circle is None:
+        return Response({'error': 'Community not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    membership, created = CircleMembership.objects.get_or_create(
+        circle=circle,
+        user=request.user,
+    )
+
+    return Response({
+        'success': True,
+        'joined': created,
+        'slug': circle.slug,
+        'name': circle.name,
+        'member_count': circle.memberships.count(),
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def my_groups(request):
+    """Communities the current user has joined, for the DM groups section."""
+    circles = (
+        MovieCircle.objects
+        .filter(memberships__user=request.user)
+        .annotate(member_count=Count('memberships', distinct=True))
+        .order_by('name')
+    )
+
+    data = []
+    for circle in circles:
+        last = circle.messages.select_related('sender').order_by('-created_at').first()
+        data.append({
+            'id': circle.id,
+            'name': circle.name,
+            'slug': circle.slug,
+            'description': circle.description,
+            'genre_tag': circle.genre_tag,
+            'member_count': circle.member_count,
+            'last_message': last.message if last else '',
+            'last_message_at': last.created_at.isoformat() if last else '',
+            'last_sender': last.sender.username if last else '',
+            'owner': _circle_owner_card(circle),
+            'is_owner': bool(circle.owner_id and circle.owner_id == request.user.id),
+        })
+    return Response(data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def community_detail(request, slug):
+    """Community about page data: description, admin, members."""
+    ensure_default_communities()
+    circle = MovieCircle.objects.select_related('owner__profile').filter(slug=slug).first()
+    if circle is None:
+        return Response({'error': 'Community not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    is_member = CircleMembership.objects.filter(circle=circle, user=request.user).exists()
+    data = _circle_card(circle, request.user, is_member)
+    data['members'] = _circle_members(circle)
+    data['member_count'] = circle.memberships.count()
+    return Response(data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def community_cover_update(request, slug):
+    """Admin-only cover image update."""
+    circle = MovieCircle.objects.filter(slug=slug).first()
+    if circle is None:
+        return Response({'error': 'Community not found'}, status=status.HTTP_404_NOT_FOUND)
+    if circle.owner_id != request.user.id and not request.user.is_staff:
+        return Response({'error': 'Only the community admin can change the cover.'}, status=status.HTTP_403_FORBIDDEN)
+
+    upload = request.FILES.get('cover')
+    if upload is None:
+        return Response({'error': 'No cover image provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    cover_url = _save_community_cover(upload, circle.slug)
+    if not cover_url:
+        return Response({'error': 'Cover must be an image up to 8MB.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    circle.cover_image = cover_url
+    circle.save(update_fields=['cover_image'])
+    return Response({'success': True, 'cover_image': cover_url}, status=status.HTTP_200_OK)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def community_leave(request, slug):
+    circle = MovieCircle.objects.filter(slug=slug).first()
+    if circle is None:
+        return Response({'error': 'Community not found'}, status=status.HTTP_404_NOT_FOUND)
+    if circle.owner_id == request.user.id:
+        return Response(
+            {'error': 'Admins must delete the community instead of leaving.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    CircleMembership.objects.filter(circle=circle, user=request.user).delete()
+    return Response({'success': True}, status=status.HTTP_200_OK)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def community_delete(request, slug):
+    circle = MovieCircle.objects.filter(slug=slug).first()
+    if circle is None:
+        return Response({'error': 'Community not found'}, status=status.HTTP_404_NOT_FOUND)
+    if circle.owner_id != request.user.id and not request.user.is_staff:
+        return Response(
+            {'error': 'Only the community admin can delete it.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    circle.delete()
+    return Response({'success': True}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def friend_request_accept(request, request_id):
+    friend_request = FriendRequest.objects.filter(
+        id=request_id, recipient=request.user, status='pending'
+    ).select_related('sender').first()
+    if friend_request is None:
+        return Response({'error': 'Request not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    friend_request.status = 'accepted'
+    friend_request.responded_at = timezone.now()
+    friend_request.save(update_fields=['status', 'responded_at'])
+
+    Follow.objects.get_or_create(follower=request.user, following=friend_request.sender)
+    Follow.objects.get_or_create(follower=friend_request.sender, following=request.user)
+
+    return Response({
+        'success': True,
+        'status': 'accepted',
+        'user': _notification_actor(friend_request.sender),
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def friend_request_decline(request, request_id):
+    friend_request = FriendRequest.objects.filter(
+        id=request_id, recipient=request.user, status='pending'
+    ).first()
+    if friend_request is None:
+        return Response({'error': 'Request not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    friend_request.delete()
+    return Response({'success': True}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def friend_request_send(request, username):
+    """Send a friend request by username (used by suggested people)."""
+    try:
+        target = User.objects.get(username=username)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if target.id == request.user.id:
+        return Response({'error': 'Cannot add yourself.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    incoming = FriendRequest.objects.filter(
+        sender=target, recipient=request.user
+    ).first()
+    if incoming and incoming.status == 'accepted':
+        return Response({'success': True, 'status': 'friends'}, status=status.HTTP_200_OK)
+    if incoming and incoming.status == 'pending':
+        incoming.status = 'accepted'
+        incoming.responded_at = timezone.now()
+        incoming.save(update_fields=['status', 'responded_at'])
+        Follow.objects.get_or_create(follower=request.user, following=target)
+        Follow.objects.get_or_create(follower=target, following=request.user)
+        return Response({'success': True, 'status': 'friends'}, status=status.HTTP_200_OK)
+
+    outgoing = FriendRequest.objects.filter(
+        sender=request.user, recipient=target
+    ).first()
+    if outgoing:
+        return Response({
+            'success': True,
+            'status': 'friends' if outgoing.status == 'accepted' else 'requested',
+        }, status=status.HTTP_200_OK)
+
+    FriendRequest.objects.create(
+        sender=request.user,
+        recipient=target,
+        status='pending',
+    )
+    return Response({'success': True, 'status': 'requested'}, status=status.HTTP_201_CREATED)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def friend_remove(request, username):
+    """Remove an accepted friendship and mutual follows."""
+    try:
+        target = User.objects.get(username=username)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    FriendRequest.objects.filter(
+        Q(sender=request.user, recipient=target) | Q(sender=target, recipient=request.user)
+    ).delete()
+    Follow.objects.filter(
+        Q(follower=request.user, following=target) | Q(follower=target, following=request.user)
+    ).delete()
+
+    return Response({'success': True, 'status': 'none'}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def user_report(request, username):
+    try:
+        target = User.objects.get(username=username)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if target.id == request.user.id:
+        return Response({'error': 'You cannot report yourself.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    reason = request.data.get('reason')
+    valid_reasons = {choice[0] for choice in UserReport.REASON_CHOICES}
+    if reason not in valid_reasons:
+        return Response({'error': 'Choose a valid reason.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    detail = (request.data.get('detail') or '').strip()
+    if len(detail) > 1000:
+        return Response({'error': 'Details must be 1000 characters or fewer.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    report, _ = UserReport.objects.update_or_create(
+        reporter=request.user,
+        reported=target,
+        defaults={'reason': reason, 'detail': detail, 'resolved': False},
+    )
+    return Response({'success': True, 'report_id': report.id}, status=status.HTTP_200_OK)

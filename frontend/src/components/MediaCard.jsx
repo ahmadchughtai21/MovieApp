@@ -6,6 +6,7 @@ import { api } from '../lib/api'
 import { useState, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import Icon from './Icon'
+import ImdbRating from './ImdbRating'
 import AuthPrompt from './AuthPrompt'
 
 const KIND_LABEL = {
@@ -125,10 +126,7 @@ export default function MediaCard({ item, to, kind = 'movie' }) {
           )}
           <span className="media-badge">{KIND_LABEL[kind] || 'Movie'}</span>
           {rating && kind !== 'person' ? (
-            <span className="media-rating">
-              <Icon name="star" size={12} />
-              {rating}
-            </span>
+            <ImdbRating value={rating} />
           ) : null}
 
           {kind !== 'person' ? (

@@ -3,6 +3,8 @@ import { Link, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 import Icon from '../components/Icon'
+import FoundingBadge from '../components/FoundingBadge'
+import VipBadge from '../components/VipBadge'
 import ErrorState from '../components/ErrorState'
 import ClipCommentsSheet from '../components/ClipCommentsSheet'
 import ClipReportModal from '../components/ClipReportModal'
@@ -704,7 +706,11 @@ export default function ClipsPage() {
                       )}
                     </span>
                     <span className="clip-author-meta">
-                      <span className="clip-author-name">{clip.user.display_name || clip.user.username}</span>
+                      <span className="clip-author-name">
+                        {clip.user.display_name || clip.user.username}
+                        {clip.user.is_founding_member && <FoundingBadge size={10} />}
+                        {clip.user.is_vip && <VipBadge size={9} />}
+                      </span>
                       <span className="clip-author-handle">@{clip.user.username}</span>
                     </span>
                   </Link>

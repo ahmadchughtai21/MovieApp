@@ -5,25 +5,23 @@ import Section from './Section'
 import MediaRail from './MediaRail'
 import MediaCard from './MediaCard'
 
-export default function RecommendedForYou() {
+export default function RecommendedForYou({ excludeIds = [] }) {
   const { user } = useAuth()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
+  const excludeKey = excludeIds.join(',')
 
   useEffect(() => {
-    if (!user) {
-      setLoading(false)
-      return
-    }
+    if (!user) return undefined
     let active = true
-    api.recommendations()
+    api.recommendations(excludeKey ? excludeKey.split(',') : [])
       .then((data) => {
         if (active) setItems(data.results || [])
       })
       .catch(() => {})
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
-  }, [user])
+  }, [user, excludeKey])
 
   if (!user || loading || items.length === 0) return null
 

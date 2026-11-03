@@ -11,6 +11,7 @@ import MediaRail from '../components/MediaRail'
 import CastList from '../components/CastList'
 import VideoRail from '../components/VideoRail'
 import Icon from '../components/Icon'
+import ImdbRating from '../components/ImdbRating'
 import Loading from '../components/Loading'
 import ErrorState from '../components/ErrorState'
 import Player from '../components/Player'
@@ -126,7 +127,7 @@ export default function MovieDetailsPage() {
               {releaseYear && <span className="md-meta-item">{releaseYear}</span>}
               {rating && (
                 <span className="md-meta-item md-rating">
-                  <Icon name="star" size={14} /> {rating}
+                  <ImdbRating value={rating} size="md" />
                 </span>
               )}
               {details.runtime && <span className="md-meta-item">{formatRuntime(details.runtime)}</span>}

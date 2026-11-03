@@ -11,6 +11,7 @@ import MediaRail from '../components/MediaRail'
 import CastList from '../components/CastList'
 import VideoRail from '../components/VideoRail'
 import Icon from '../components/Icon'
+import ImdbRating from '../components/ImdbRating'
 import Loading from '../components/Loading'
 import ErrorState from '../components/ErrorState'
 import Player from '../components/Player'
@@ -147,7 +148,7 @@ export default function ShowDetailsPage() {
               {yearRange && <span className="md-meta-item">{yearRange}</span>}
               {rating && (
                 <span className="md-meta-item md-rating">
-                  <Icon name="star" size={14} /> {rating}
+                  <ImdbRating value={rating} size="md" />
                 </span>
               )}
               {details.number_of_seasons && (
@@ -275,7 +276,7 @@ export default function ShowDetailsPage() {
               <span className="md-ep-card-title">{episodeData.name}</span>
               {episodeData.vote_average > 0 && (
                 <span className="md-rating md-ep-card-rating">
-                  <Icon name="star" size={12} /> {episodeData.vote_average.toFixed(1)}
+                  <ImdbRating value={episodeData.vote_average} />
                 </span>
               )}
             </div>

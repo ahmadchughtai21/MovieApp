@@ -36,8 +36,8 @@ export default function WatchlistPage() {
     try {
       await api.watchlistRemove(item.id)
       setData((prev) => (Array.isArray(prev) ? prev.filter((i) => i.id !== item.id) : prev))
-    } catch (err) {
-      console.error('Remove failed:', err)
+    } catch {
+      // ignore failures
     }
   }
 

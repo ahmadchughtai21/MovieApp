@@ -38,7 +38,23 @@ async function fetchPost(path, body) {
   const res = await fetch(buildUrl(path), { method: 'POST', headers, body: JSON.stringify(body) })
   if (!res.ok) {
     const text = await res.text()
-    throw new Error(text || `Request failed: ${res.status}`)
+    const error = new Error(text || `Request failed: ${res.status}`)
+    error.status = res.status
+    throw error
+  }
+  return res.json()
+}
+
+async function fetchPatch(path, body) {
+  const token = getToken()
+  const headers = { 'Content-Type': 'application/json' }
+  if (token) headers['Authorization'] = `Token ${token}`
+  const res = await fetch(buildUrl(path), { method: 'PATCH', headers, body: JSON.stringify(body) })
+  if (!res.ok) {
+    const text = await res.text()
+    const error = new Error(text || `Request failed: ${res.status}`)
+    error.status = res.status
+    throw error
   }
   return res.json()
 }
@@ -97,6 +113,11 @@ export const api = {
   movieWatchProviders: (movieId, { title, region = 'US' } = {}) =>
     fetchJson(`/movies/${movieId}/watch-providers/`, { title, region }),
   moviesByGenre: (genreId, page = 1) => fetchJson('/movies/genre/', { genre_id: genreId, page }),
+  searchPeople: (query) => fetchJson('/tmdb/person/search/', { q: query }),
+  personDetails: (personId) => fetchJson(`/tmdb/person/${personId}/`),
+  moviePosters: (movieId) => fetchJson(`/tmdb/movie/${movieId}/posters/`),
+  vipCheckout: (plan = 'monthly') =>
+    fetchPost('/vip/checkout/', { plan, payment_method: 'demo' }),
 
   showsData: () => fetchJson('/shows/'),
   showsTrending: (timeWindow = 'week') => fetchJson('/shows/trending/', { time_window: timeWindow }),
@@ -159,7 +180,7 @@ export const api = {
   adminDeleteComment: (commentId) => fetchDelete(`/admin/comments/${commentId}/`),
   adminDeleteReply: (replyId) => fetchDelete(`/admin/replies/${replyId}/`),
 
-  recommendations: () => fetchJson('/recommendations/'),
+  recommendations: (excludeIds) => fetchJson('/recommendations/', excludeIds && excludeIds.length ? { exclude: excludeIds.join(',') } : undefined),
   movieRecommendations: (movieId) => fetchJson(`/recommendations/for-movie/${movieId}/`),
   showRecommendations: (showId) => fetchJson(`/recommendations/for-show/${showId}/`),
 
@@ -171,8 +192,9 @@ export const api = {
   logForUser: (username) => fetchJson(`/logs/for-user/${username}/`),
   logStats: (tmdbId) => fetchJson(`/logs/stats/${tmdbId}/`),
   logToggleLike: (logId) => fetchPost(`/logs/${logId}/like/`, {}),
+  reviewDetail: (logId) => fetchJson(`/reviews/${logId}/`),
   reviewReplies: (logId) => fetchJson(`/logs/${logId}/replies/`),
-  reviewReplyCreate: (logId, body) => fetchPost(`/logs/${logId}/replies/create/`, { body }),
+  reviewReplyCreate: (logId, body, parentId) => fetchPost(`/logs/${logId}/replies/create/`, parentId ? { body, parent_id: parentId } : { body }),
   reviewReplyDelete: (logId, replyId) => fetchDelete(`/logs/${logId}/replies/${replyId}/delete/`),
   reviewReplyToggleLike: (logId, replyId) => fetchPost(`/logs/${logId}/replies/${replyId}/like/`, {}),
 
@@ -181,12 +203,56 @@ export const api = {
   profileFollowers: (username) => fetchJson(`/profile/${username}/followers/`),
   profileFollowing: (username) => fetchJson(`/profile/${username}/following/`),
   updateProfile: (data) => fetchPut('/auth/profile/', data),
+  uploadAvatar: (file) => {
+    const formData = new FormData()
+    formData.append('avatar', file)
+    return fetchMultipart('/auth/profile/avatar/', formData)
+  },
 
   // Social
   followToggle: (username) => fetchPost(`/follow/${username}/`, {}),
+  sendFriendRequest: (username) => fetchPost(`/friend-requests/send/${username}/`, {}),
+  acceptFriendRequest: (requestId) => fetchPost(`/friend-requests/${requestId}/accept/`, {}),
+  declineFriendRequest: (requestId) => fetchPost(`/friend-requests/${requestId}/decline/`, {}),
+  removeFriend: (username) => fetchDelete(`/friends/${username}/remove/`),
+  reportUser: (username, data) => fetchPost(`/users/${username}/report/`, data),
   feed: (scope = 'friends') => fetchJson('/feed/', { scope }),
   suggestedUsers: () => fetchJson('/users/suggested/'),
   userSearch: (query) => fetchJson('/users/search/', { query }),
+
+  // CineSwipe / City / Circles / DMs
+  searchCities: (query) => fetchJson('/cities/search/', { q: query }),
+  getSwipeCandidates: () => fetchJson('/swipe/discover/'),
+  sendSwipeAction: (targetUserId, action) =>
+    fetchPost('/swipe/action/', { target_user_id: targetUserId, action }),
+  updateUserCity: (city, country) =>
+    fetchPatch('/auth/profile/', { location_city: city, location_country: country }),
+  socialFollowers: () => fetchJson('/social/followers/'),
+  communities: () => fetchJson('/communities/'),
+  communityMessages: (slug, page = 1) => fetchJson(`/communities/${slug}/messages/`, { page }),
+  joinCommunity: (slug) => fetchPost(`/communities/${slug}/join/`, {}),
+  createCommunity: (data, coverFile) => {
+    if (coverFile) {
+      const formData = new FormData()
+      formData.append('name', data.name || '')
+      formData.append('about', data.about || '')
+      formData.append('genre_tag', data.genre_tag || 'General')
+      formData.append('cover', coverFile)
+      return fetchMultipart('/communities/create/', formData)
+    }
+    return fetchPost('/communities/create/', data)
+  },
+  communityDetail: (slug) => fetchJson(`/communities/${slug}/`),
+  uploadCommunityCover: (slug, file) => {
+    const formData = new FormData()
+    formData.append('cover', file)
+    return fetchMultipart(`/communities/${slug}/cover/`, formData)
+  },
+  leaveCommunity: (slug) => fetchDelete(`/communities/${slug}/leave/`),
+  deleteCommunity: (slug) => fetchDelete(`/communities/${slug}/delete/`),
+  myGroups: () => fetchJson('/messages/groups/'),
+  notifications: () => fetchJson('/notifications/'),
+  dmConversation: (userId) => fetchJson(`/dm/${userId}/`),
 
   // Clips
   clips: (params = {}) => fetchJson('/clips/', params),

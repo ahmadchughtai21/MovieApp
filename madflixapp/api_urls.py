@@ -73,6 +73,7 @@ urlpatterns = [
     path('auth/logout/', auth_views.logout_view, name='auth-logout'),
     path('auth/me/', auth_views.me_view, name='auth-me'),
     path('auth/profile/', auth_views.profile_update_view, name='auth-profile'),
+    path('auth/profile/avatar/', auth_views.avatar_upload_view, name='auth-avatar-upload'),
 
     # =============================================================================
     # USER ENDPOINTS (Watchlist, History, Sessions)
@@ -125,6 +126,7 @@ urlpatterns = [
     path('logs/', user_views.log_list, name='log-list'),
     path('logs/add/', user_views.log_create, name='log-create'),
     path('logs/<int:log_id>/', user_views.log_delete, name='log-delete'),
+    path('reviews/<int:log_id>/', user_views.review_detail, name='review-detail'),
     path('logs/for-movie/<int:tmdb_id>/', user_views.log_for_movie, name='log-for-movie'),
     path('logs/for-user/<str:username>/', user_views.log_for_user, name='log-for-user'),
     path('logs/stats/<int:tmdb_id>/', user_views.log_stats, name='log-stats'),
@@ -145,9 +147,30 @@ urlpatterns = [
     # SOCIAL: FOLLOWS + FEED
     # =============================================================================
     path('follow/<str:username>/', user_views.follow_toggle, name='follow-toggle'),
+    path('friend-requests/send/<str:username>/', api_views.friend_request_send, name='friend-request-send'),
+    path('friends/<str:username>/remove/', api_views.friend_remove, name='friend-remove'),
+    path('users/<str:username>/report/', api_views.user_report, name='user-report'),
+    path('friend-requests/<int:request_id>/accept/', api_views.friend_request_accept, name='friend-request-accept'),
+    path('friend-requests/<int:request_id>/decline/', api_views.friend_request_decline, name='friend-request-decline'),
     path('feed/', user_views.feed, name='feed'),
     path('users/suggested/', user_views.suggested_users, name='suggested-users'),
     path('users/search/', user_views.search_users, name='user-search'),
+
+    path('social/followers/', user_views.social_followers, name='social-followers'),
+    path('dm/<int:user_id>/', user_views.dm_conversation, name='dm-conversation'),
+    path('communities/', api_views.community_list, name='community-list'),
+    path('communities/create/', api_views.community_create, name='community-create'),
+    path('communities/<slug:slug>/messages/', api_views.community_messages, name='community-messages'),
+    path('communities/<slug:slug>/join/', api_views.community_join, name='community-join'),
+    path('communities/<slug:slug>/', api_views.community_detail, name='community-detail'),
+    path('communities/<slug:slug>/cover/', api_views.community_cover_update, name='community-cover'),
+    path('communities/<slug:slug>/leave/', api_views.community_leave, name='community-leave'),
+    path('communities/<slug:slug>/delete/', api_views.community_delete, name='community-delete'),
+    path('messages/groups/', api_views.my_groups, name='my-groups'),
+    path('messages/inbox/', api_views.dm_inbox, name='dm-inbox'),
+    path('messages/history/<int:target_user_id>/', api_views.dm_history, name='dm-history'),
+    path('vip/checkout/', api_views.vip_checkout, name='vip-checkout'),
+    path('notifications/', api_views.notifications_feed, name='notifications-feed'),
 
     # =============================================================================
     # CLIPS ENDPOINTS
@@ -162,4 +185,14 @@ urlpatterns = [
     path('clips/<int:clip_id>/comments/create/', clip_views.clip_comment_create, name='clip-comment-create'),
     path('clips/<int:clip_id>/comments/<int:comment_id>/delete/', clip_views.clip_comment_delete, name='clip-comment-delete'),
     path('clips/<int:clip_id>/report/', clip_views.clip_report, name='clip-report'),
+
+    # =============================================================================
+    # CITY SEARCH + SWIPE DISCOVERY
+    # =============================================================================
+    path('cities/search/', api_views.city_search, name='city-search'),
+    path('tmdb/person/search/', api_views.tmdb_person_search, name='tmdb-person-search'),
+    path('tmdb/movie/<int:movie_id>/posters/', api_views.tmdb_movie_posters, name='tmdb-movie-posters'),
+    path('tmdb/person/<int:person_id>/', api_views.tmdb_person_details, name='tmdb-person-details'),
+    path('swipe/discover/', api_views.swipe_discover, name='swipe-discover'),
+    path('swipe/action/', api_views.swipe_action, name='swipe-action'),
 ]

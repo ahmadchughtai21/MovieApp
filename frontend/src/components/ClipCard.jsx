@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import Icon from './Icon'
+import FoundingBadge from './FoundingBadge'
 
 function timeAgo(dateString) {
   const date = new Date(dateString)
@@ -32,7 +33,14 @@ export default function ClipCard({ clip, caption = false, onEdit, onDelete }) {
           </div>
         </div>
         <div className="clip-card-info">
-          <p className="clip-card-creator">{infoLine}</p>
+          <p className="clip-card-creator">
+            {caption ? infoLine : (
+              <>
+                @{clip.user?.username || 'member'}
+                {clip.user?.is_founding_member && <FoundingBadge size={9} />}
+              </>
+            )}
+          </p>
           <p className="clip-card-time">{timeAgo(clip.created_at)}</p>
         </div>
       </Link>

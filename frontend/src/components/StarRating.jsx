@@ -1,11 +1,12 @@
 import { useState } from 'react'
 
-export default function StarRating({ value = 0, onChange, size = 'md', readonly = false }) {
+export default function StarRating({ value = 0, onChange, size = 'md', readonly = false, max = 5 }) {
   const [hover, setHover] = useState(0)
+  const scale = max / 5
 
   const handleClick = (star, isHalf) => {
     if (readonly) return
-    const newVal = isHalf ? star - 0.5 : star
+    const newVal = (isHalf ? star - 0.5 : star) * scale
     onChange?.(newVal === value ? 0 : newVal)
   }
 
@@ -16,7 +17,8 @@ export default function StarRating({ value = 0, onChange, size = 'md', readonly 
     setHover(isHalf ? star - 0.5 : star)
   }
 
-  const display = hover || value
+  const clamped = Math.min(Math.max(Number(value) || 0, 0), max)
+  const display = hover || clamped / scale
   const stars = [1, 2, 3, 4, 5]
 
   return (
@@ -37,7 +39,7 @@ export default function StarRating({ value = 0, onChange, size = 'md', readonly 
             onMouseMove={(e) => handleMouseMove(e, star)}
             onMouseLeave={() => !readonly && setHover(0)}
             disabled={readonly}
-            aria-label={`${star} star${star !== 1 ? 's' : ''}`}
+            aria-label={`${(star * scale).toFixed(1)} out of ${max}`}
           >
             <svg viewBox="0 0 24 24" width="100%" height="100%">
               {half && (
