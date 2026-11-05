@@ -99,7 +99,7 @@ export default function CommunitiesPage() {
     api.communities()
       .then((data) => {
         if (!mounted) return
-        if (Array.isArray(data) && data.length > 0) setCircles(data)
+        if (Array.isArray(data)) setCircles(data)
       })
       .catch(() => {})
     return () => { mounted = false }
@@ -320,6 +320,17 @@ export default function CommunitiesPage() {
             <Icon name="plus" size={14} /> New
           </button>
         </div>
+
+        {circles.length === 0 && (
+          <div className="dm-empty">
+            <Icon name="globe" size={26} />
+            <strong>No communities yet</strong>
+            <span>Be the first to create a group for your kind of cinema.</span>
+            <button type="button" className="btn btn--accent btn--sm" onClick={() => setCreateOpen(true)}>
+              Create community
+            </button>
+          </div>
+        )}
 
         <div style={{ display: 'grid', gap: 12 }}>
           {circles.map((community) => (

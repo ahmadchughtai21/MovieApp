@@ -1790,8 +1790,6 @@ def _sender_card(user):
 @permission_classes([IsAuthenticated])
 def community_list(request):
     """List all communities with member counts."""
-    ensure_default_communities()
-
     circles = (
         MovieCircle.objects
         .annotate(member_count=Count('memberships', distinct=True))
@@ -1813,8 +1811,6 @@ def community_list(request):
 @permission_classes([IsAuthenticated])
 def community_messages(request, slug):
     """Paginated chat history for a community room."""
-    ensure_default_communities()
-
     circle = MovieCircle.objects.filter(slug=slug).first()
     if circle is None:
         return Response({'error': 'Community not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -2201,8 +2197,6 @@ def _circle_members(circle, limit=60):
 @permission_classes([IsAuthenticated])
 def community_create(request):
     """Create an open community group; the creator becomes its admin."""
-    ensure_default_communities()
-
     name = (request.data.get('name') or request.data.get('title') or '').strip()
     about = (request.data.get('description') or request.data.get('about') or '').strip()
     genre_tag = (request.data.get('genre_tag') or request.data.get('genre') or 'General').strip()
@@ -2249,8 +2243,6 @@ def community_create(request):
 @permission_classes([IsAuthenticated])
 def community_join(request, slug):
     """Join an open community group."""
-    ensure_default_communities()
-
     circle = MovieCircle.objects.filter(slug=slug).first()
     if circle is None:
         return Response({'error': 'Community not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -2303,7 +2295,6 @@ def my_groups(request):
 @permission_classes([IsAuthenticated])
 def community_detail(request, slug):
     """Community about page data: description, admin, members."""
-    ensure_default_communities()
     circle = MovieCircle.objects.select_related('owner__profile').filter(slug=slug).first()
     if circle is None:
         return Response({'error': 'Community not found'}, status=status.HTTP_404_NOT_FOUND)
