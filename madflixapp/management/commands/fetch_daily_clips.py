@@ -54,7 +54,7 @@ class Command(BaseCommand):
         )
         self.stdout.write(f'Movies with existing clips: {len(existing_tmdb_ids)}')
 
-        movies = self._collect_movies(existing_tmdb_ids, max(limit * 5, 15))
+        movies = self._collect_movies(existing_tmdb_ids, limit)
         if not movies:
             self.stdout.write(self.style.WARNING('No new trending movies available.'))
             return
@@ -107,10 +107,10 @@ class Command(BaseCommand):
     def _collect_movies(self, existing_tmdb_ids, limit):
         movies = []
         seen = set(existing_tmdb_ids)
-        endpoints = ('/trending/movie/day', '/movie/popular', '/trending/movie/week')
+        endpoints = ('/movie/top_rated',)
 
         for endpoint in endpoints:
-            for page in range(1, 11):
+            for page in range(1, 26):
                 if len(movies) >= limit:
                     return movies
                 payload = make_tmdb_request(endpoint, {'page': page})
