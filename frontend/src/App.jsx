@@ -19,7 +19,6 @@ import ClipsPage from './pages/ClipsPage'
 import CineSwipePage from './pages/CineSwipePage'
 import CommunitiesPage from './pages/CommunitiesPage'
 import DirectMessagesPage from './pages/DirectMessagesPage'
-import HistoryPage from './pages/HistoryPage'
 import ReviewPage from './pages/ReviewPage'
 import SettingsPage from './pages/SettingsPage'
 
@@ -27,7 +26,6 @@ const MORE_LINKS = [
   { to: '/discover', label: 'Discover', description: 'Browse movies and TV shows' },
   { to: '/clips', label: 'Clips', description: 'Short movie moments' },
   { to: '/diary', label: 'Diary', description: 'Your logged watches' },
-  { to: '/history', label: 'History', description: 'Recently played titles' },
   { to: '/watchlist', label: 'Watchlist', description: 'Titles you saved' },
 ]
 
@@ -93,7 +91,6 @@ export default function App() {
             <Route path="/admin" element={<AdminDashboardPage />} />
             <Route path="/watchlist" element={<WatchlistPage />} />
             <Route path="/diary" element={<LogsPage />} />
-            <Route path="/history" element={<HistoryPage />} />
             <Route path="/review/:logId" element={<ReviewPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/more" element={<MorePage />} />
@@ -117,6 +114,7 @@ export default function App() {
             <Route path="/shows/:id" element={<ShowRedirect />} />
             <Route path="/saved" element={<Navigate to="/watchlist" replace />} />
             <Route path="/logs" element={<Navigate to="/diary" replace />} />
+            <Route path="/history" element={<Navigate to="/diary" replace />} />
 
             <Route path="*" element={<NotFound />} />
           </Route>

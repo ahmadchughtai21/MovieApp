@@ -26,10 +26,10 @@ function greeting() {
 }
 
 const QUICK_LINKS = [
-  { to: '/swipe', label: 'CineSwipe', description: 'Find your taste match', icon: 'heart' },
   { to: '/communities', label: 'Communities', description: 'Live movie chat', icon: 'globe' },
   { to: '/messages', label: 'Messages', description: 'Your conversations', icon: 'chat' },
   { to: '/clips', label: 'Clips', description: 'Moments worth sharing', icon: 'clapper' },
+  { to: '/diary', label: 'Diary', description: 'Your logged watches', icon: 'journal' },
 ]
 
 export default function HomePage() {
@@ -142,9 +142,6 @@ export default function HomePage() {
         <div className="home-strip__actions">
           {user ? (
             <>
-              <Link to="/swipe" className="btn btn--accent btn--sm">
-                <Icon name="heart" size={14} /> CineSwipe
-              </Link>
               <Link to="/diary" className="btn btn-ghost btn--sm">
                 <Icon name="journal" size={14} /> Diary
               </Link>

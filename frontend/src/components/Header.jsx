@@ -22,7 +22,6 @@ function timeAgo(value) {
 
 const NAV_LINKS = [
   { to: '/', label: 'Home' },
-  { to: '/swipe', label: 'CineSwipe' },
   { to: '/clips', label: 'Clips' },
   { to: '/communities', label: 'Communities' },
   { to: '/messages', label: 'Messages' },
@@ -140,10 +139,6 @@ function ProfileMenu({ variant = 'desktop' }) {
           <Link to="/watchlist" className="fn-menu-item" role="menuitem" onClick={() => setOpen(false)}>
             <Icon name="bookmark" size={15} />
             Watchlist
-          </Link>
-          <Link to="/history" className="fn-menu-item" role="menuitem" onClick={() => setOpen(false)}>
-            <Icon name="clock" size={15} />
-            History
           </Link>
           <div className="fn-menu-divider" />
           <Link to="/settings" className="fn-menu-item" role="menuitem" onClick={() => setOpen(false)}>

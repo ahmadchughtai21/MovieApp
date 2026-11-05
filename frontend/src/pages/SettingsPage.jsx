@@ -8,7 +8,6 @@ import { api } from '../lib/api'
 const LINKS = [
   { to: '/profile', label: 'Edit profile', description: 'Bio, city, favourites, accent colour' },
   { to: '/watchlist', label: 'Watchlist', description: 'Titles you saved' },
-  { to: '/history', label: 'History', description: 'Recently played' },
   { to: '/clips', label: 'Clips', description: 'Your shared moments' },
 ]
 

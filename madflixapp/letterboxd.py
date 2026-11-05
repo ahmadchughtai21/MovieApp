@@ -72,7 +72,12 @@ def _resolve_tmdb(name, year):
             if not close and (not year or abs(int(item_year or 0) - int(year or 0)) <= 1):
                 close = item
         chosen = exact or close or results[0]
-        return {'tmdb_id': chosen.get('id'), 'media_type': media_type}
+        return {
+            'tmdb_id': chosen.get('id'),
+            'media_type': media_type,
+            'title': (chosen.get('title') or chosen.get('name') or name)[:255],
+            'poster_path': chosen.get('poster_path') or '',
+        }
     return None
 
 
@@ -207,19 +212,24 @@ def import_letterboxd_zip(user, upload):
             if not match or not match.get('tmdb_id'):
                 stats['unmatched'] += 1
                 continue
-            if Watchlist.objects.filter(
+            existing = Watchlist.objects.filter(
                 user=user,
                 tmdb_id=match['tmdb_id'],
                 media_type=match['media_type'],
-            ).exists():
+            ).first()
+            if existing is not None:
+                if not existing.poster_path or not existing.title:
+                    existing.poster_path = match['poster_path'] or existing.poster_path
+                    existing.title = existing.title or match['title'] or ''
+                    existing.save(update_fields=['poster_path', 'title'])
                 stats['watchlist_existing'] += 1
                 continue
             Watchlist.objects.create(
                 user=user,
                 tmdb_id=match['tmdb_id'],
                 media_type=match['media_type'],
-                title=(row.get('Name') or '')[:255],
-                poster_path='',
+                title=match['title'] or (row.get('Name') or '')[:255],
+                poster_path=match['poster_path'] or '',
             )
             stats['watchlist_added'] += 1
 

@@ -5665,3 +5665,16 @@ button, a, [role="button"] { touch-action: manipulation; }
   font-size: 0.8rem;
 }
 .settings-import__result strong { color: var(--success); }
+
+.bottom-nav--4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 2px;
+}
+.bottom-nav--4 .bottom-nav-item {
+  min-width: 0;
+  padding: 7px 0;
+}
+.bottom-nav--4 .bottom-nav-label {
+  font-size: 0.58rem;
+}

@@ -35,10 +35,27 @@ def get_user_agent(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def watchlist_list(request):
-    items = Watchlist.objects.filter(user=request.user)
+    from .api_views import make_tmdb_request
+
+    items = list(Watchlist.objects.filter(user=request.user))
     media_type = request.GET.get('media_type')
     if media_type in ('movie', 'tv'):
-        items = items.filter(media_type=media_type)
+        items = [item for item in items if item.media_type == media_type]
+
+    # Repair imported rows that were saved without poster metadata.
+    for item in items[:80]:
+        if item.poster_path:
+            continue
+        endpoint = f'/tv/{item.tmdb_id}' if item.media_type == 'tv' else f'/movie/{item.tmdb_id}'
+        data = make_tmdb_request(endpoint)
+        if isinstance(data, dict) and not data.get('error'):
+            poster = data.get('poster_path') or ''
+            title = data.get('title') or data.get('name') or item.title
+            if poster or title:
+                item.poster_path = poster
+                item.title = title
+                item.save(update_fields=['poster_path', 'title'])
+
     return Response(WatchlistSerializer(items, many=True).data)
 
 
@@ -554,7 +571,7 @@ def review_reply_delete(request, log_id, reply_id):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def public_profile(request, username):
-    """Public profile: info + stats + 10 recent diary entries."""
+    """Public profile: info + stats + recent diary entries."""
     from django.contrib.auth.models import User as DjangoUser
     from django.db.models import Avg as DAvg
     try:
@@ -568,7 +585,7 @@ def public_profile(request, username):
     avg = logs.aggregate(avg=DAvg('rating'))['avg']
     this_year = logs.filter(watched_date__year=timezone.now().year).count()
     reviews_count = logs.exclude(Q(review='') | Q(review__isnull=True)).count()
-    recent = logs.select_related('user').prefetch_related('likes', 'replies')[:10]
+    recent = logs.select_related('user').prefetch_related('likes', 'replies')[:60]
 
     profile_extras = {
         field: getattr(profile, field, None)

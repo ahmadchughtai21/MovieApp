@@ -1030,7 +1030,12 @@ export default function ProfilePage() {
       )}
 
       <section className="profile-block profile-block--activity">
-      <h2 className="profile-section-title">Recent activity</h2>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+        <h2 className="profile-section-title">Recent activity</h2>
+        <Link to="/diary" className="section-action">
+          View all <Icon name="arrowRight" size={12} />
+        </Link>
+      </div>
 
       {profile.recent.length === 0 ? (
         <p className="profile-empty">No diary entries yet.</p>
