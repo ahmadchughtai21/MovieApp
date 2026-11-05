@@ -132,8 +132,13 @@ class Command(BaseCommand):
         import requests
 
         queries = [
-            f'{movie_title} #shorts',
-            f'{movie_title} short edit',
+            f'"{movie_title}" #shorts',
+            f'"{movie_title}" short edit',
+        ]
+        keywords = [
+            word.lower()
+            for word in re.findall(r"[A-Za-z0-9']+", movie_title)
+            if len(word) > 2 and word.lower() not in {'the', 'and', 'of', 'for', 'with'}
         ]
         options = {
             'quiet': True,
@@ -160,7 +165,8 @@ class Command(BaseCommand):
                         )
                     except Exception:
                         continue
-                    if _is_native_short(info):
+                    text = f"{info.get('title') or ''} {info.get('description') or ''}".lower()
+                    if _is_native_short(info) and any(word in text for word in keywords):
                         candidates.append(info)
                 if candidates:
                     break
