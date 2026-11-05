@@ -5695,3 +5695,71 @@ button, a, [role="button"] { touch-action: manipulation; }
   border-color: var(--border-strong);
   background: var(--bg-surface);
 }
+
+/* ============ LETTERBOXD NOTICE + INSTRUCTIONS ============ */
+.notif-system {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 8px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, rgba(245, 185, 66, 0.1), rgba(19, 26, 23, 0.9));
+  border: 1px solid rgba(245, 185, 66, 0.24);
+}
+.notif-system__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.notif-system__body {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+.notif-system__body strong { font-size: 0.84rem; }
+.notif-system__body span { color: var(--text-muted); font-size: 0.74rem; line-height: 1.35; }
+.notif-system__link {
+  margin-top: 3px;
+  color: var(--accent);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+.notif-system__close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 99px;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1;
+}
+.notif-system__close:hover { background: rgba(255, 255, 255, 0.08); color: var(--text); }
+
+.settings-import__steps {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.8rem;
+  color: var(--text-soft);
+}
+.settings-import__steps strong { color: var(--text); font-size: 0.82rem; }
+.settings-import__steps ol {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+.settings-import__steps em { color: var(--text); font-style: normal; font-weight: 600; }

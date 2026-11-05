@@ -173,6 +173,7 @@ export default function Header({ scrolled = false }) {
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
+  const [dismissedNotices, setDismissedNotices] = useState({})
 
   useEffect(() => {
     if (!user) return undefined
@@ -203,6 +204,17 @@ export default function Header({ scrolled = false }) {
     } catch {
       // keep the last loaded list
     }
+  }
+
+  const letterboxdKey = user ? `madflix_letterboxd_notice_${user.id}` : null
+  const letterboxdDismissed = !user || (
+    dismissedNotices[user.id] ?? Boolean(letterboxdKey && localStorage.getItem(letterboxdKey))
+  )
+
+  function dismissLetterboxdNotice() {
+    if (!user || !letterboxdKey) return
+    localStorage.setItem(letterboxdKey, '1')
+    setDismissedNotices((prev) => ({ ...prev, [user.id]: true }))
   }
 
   async function respondFriendRequest(item, accept) {
@@ -245,7 +257,11 @@ export default function Header({ scrolled = false }) {
             onClick={openNotifications}
           >
             <Icon name="bell" size={16} />
-            {unreadCount > 0 && <span className="nav-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>}
+            {(unreadCount + (letterboxdDismissed ? 0 : 1)) > 0 && (
+              <span className="nav-badge">
+                {(unreadCount + (letterboxdDismissed ? 0 : 1)) > 9 ? '9+' : unreadCount + (letterboxdDismissed ? 0 : 1)}
+              </span>
+            )}
           </button>
           <ProfileMenu />
         </div>
@@ -266,7 +282,11 @@ export default function Header({ scrolled = false }) {
             onClick={openNotifications}
           >
             <Icon name="bell" size={16} />
-            {unreadCount > 0 && <span className="nav-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>}
+            {(unreadCount + (letterboxdDismissed ? 0 : 1)) > 0 && (
+              <span className="nav-badge">
+                {(unreadCount + (letterboxdDismissed ? 0 : 1)) > 9 ? '9+' : unreadCount + (letterboxdDismissed ? 0 : 1)}
+              </span>
+            )}
           </button>
           <ProfileMenu variant="mobile" />
         </div>
@@ -287,6 +307,27 @@ export default function Header({ scrolled = false }) {
                 ×
               </button>
             </div>
+            {!letterboxdDismissed && (
+              <div className="notif-system">
+                <span className="notif-system__icon"><Icon name="film" size={16} /></span>
+                <div className="notif-system__body">
+                  <strong>Import your Letterboxd history</strong>
+                  <span>Bring your diary, ratings, reviews, and watchlist to Madflix.</span>
+                  <Link to="/settings" className="notif-system__link" onClick={() => setNotificationsOpen(false)}>
+                    Go to import
+                  </Link>
+                </div>
+                <button
+                  type="button"
+                  className="notif-system__close"
+                  onClick={dismissLetterboxdNotice}
+                  aria-label="Dismiss"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
             {notifications.length === 0 ? (
               <div className="notif-empty">
                 <span className="notif-empty-icon"><Icon name="bell" size={22} /></span>

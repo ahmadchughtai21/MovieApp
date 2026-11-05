@@ -100,6 +100,15 @@ export default function SettingsPage() {
               Upload the ZIP from your Letterboxd export. We import your diary, ratings,
               reviews, bio, and watchlist. Existing entries are updated, never deleted.
             </p>
+            <div className="settings-import__steps">
+              <strong>How to export from Letterboxd</strong>
+              <ol>
+                <li>Sign in at letterboxd.com and open <em>Settings</em>.</li>
+                <li>Go to <em>Data</em> → <em>Export your data</em>.</li>
+                <li>Download the ZIP file from the email Letterboxd sends you.</li>
+                <li>Choose that ZIP below and press Import.</li>
+              </ol>
+            </div>
             <div className="settings-import__row">
               <label className="btn btn-ghost btn--sm" htmlFor="letterboxd-zip">
                 Choose ZIP
