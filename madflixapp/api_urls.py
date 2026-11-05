@@ -171,6 +171,7 @@ urlpatterns = [
     path('messages/history/<int:target_user_id>/', api_views.dm_history, name='dm-history'),
     path('vip/checkout/', api_views.vip_checkout, name='vip-checkout'),
     path('notifications/', api_views.notifications_feed, name='notifications-feed'),
+    path('import/letterboxd/', api_views.letterboxd_import, name='letterboxd-import'),
 
     # =============================================================================
     # CLIPS ENDPOINTS

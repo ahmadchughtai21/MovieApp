@@ -252,6 +252,11 @@ export const api = {
   deleteCommunity: (slug) => fetchDelete(`/communities/${slug}/delete/`),
   myGroups: () => fetchJson('/messages/groups/'),
   notifications: () => fetchJson('/notifications/'),
+  importLetterboxd: (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return fetchMultipart('/import/letterboxd/', formData)
+  },
   dmConversation: (userId) => fetchJson(`/dm/${userId}/`),
 
   // Clips

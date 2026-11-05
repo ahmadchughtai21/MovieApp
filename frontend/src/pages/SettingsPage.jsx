@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 import Icon from '../components/Icon'
+import { api } from '../lib/api'
 
 const LINKS = [
   { to: '/profile', label: 'Edit profile', description: 'Bio, city, favourites, accent colour' },
@@ -13,6 +15,10 @@ const LINKS = [
 export default function SettingsPage() {
   useDocumentTitle('Settings')
   const { user, logout } = useAuth()
+  const [importFile, setImportFile] = useState(null)
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState(null)
+  const [importError, setImportError] = useState('')
 
   return (
     <div className="page settings-page" style={{ maxWidth: 720, margin: '0 auto', width: '100%' }}>
@@ -86,6 +92,70 @@ export default function SettingsPage() {
           ))}
         </div>
       </section>
+
+      {user && (
+        <section style={{ display: 'grid', gap: 10 }}>
+          <h2 className="profile-section-title">Import from Letterboxd</h2>
+          <div className="settings-import">
+            <p>
+              Upload the ZIP from your Letterboxd export. We import your diary, ratings,
+              reviews, bio, and watchlist. Existing entries are updated, never deleted.
+            </p>
+            <div className="settings-import__row">
+              <label className="btn btn-ghost btn--sm" htmlFor="letterboxd-zip">
+                Choose ZIP
+              </label>
+              <input
+                id="letterboxd-zip"
+                type="file"
+                accept=".zip,application/zip"
+                className="avatar-upload__input"
+                onChange={(event) => {
+                  setImportFile(event.target.files?.[0] || null)
+                  setImportResult(null)
+                  setImportError('')
+                }}
+              />
+              <span className="settings-import__file">
+                {importFile ? importFile.name : 'No file selected'}
+              </span>
+              <button
+                type="button"
+                className="btn btn--accent btn--sm"
+                onClick={async () => {
+                  if (!importFile || importing) return
+                  setImporting(true)
+                  setImportError('')
+                  setImportResult(null)
+                  try {
+                    const data = await api.importLetterboxd(importFile)
+                    setImportResult(data)
+                  } catch (err) {
+                    setImportError(err?.message || 'Import failed.')
+                  } finally {
+                    setImporting(false)
+                  }
+                }}
+                disabled={!importFile || importing}
+              >
+                {importing ? 'Importing…' : 'Import'}
+              </button>
+            </div>
+            {importing && (
+              <p className="page-sub">Importing your films. This can take a minute for large exports.</p>
+            )}
+            {importError && <div className="auth-error">{importError}</div>}
+            {importResult && (
+              <div className="settings-import__result">
+                <strong>{importResult.message}</strong>
+                <span>
+                  {importResult.imported?.unmatched || 0} titles could not be matched on TMDB.
+                </span>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       <section className="settings-about">
         <h2 className="profile-section-title">About Madflix</h2>

@@ -5624,3 +5624,44 @@ button, a, [role="button"] { touch-action: manipulation; }
     display: none;
   }
 }
+
+/* ============ LETTERBOXD IMPORT ============ */
+.settings-import {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.settings-import p {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+.settings-import__row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.settings-import__file {
+  flex: 1;
+  min-width: 160px;
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.settings-import__result {
+  display: grid;
+  gap: 3px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  color: var(--text-soft);
+  font-size: 0.8rem;
+}
+.settings-import__result strong { color: var(--success); }

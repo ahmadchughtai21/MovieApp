@@ -2491,3 +2491,41 @@ def user_report(request, username):
         defaults={'reason': reason, 'detail': detail, 'resolved': False},
     )
     return Response({'success': True, 'report_id': report.id}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def letterboxd_import(request):
+    """Import diary, ratings, reviews, profile and watchlist from a Letterboxd ZIP."""
+    import zipfile
+
+    from .letterboxd import import_letterboxd_zip
+
+    upload = request.FILES.get('file') or request.FILES.get('zip')
+    if upload is None:
+        return Response({'error': 'Upload your Letterboxd ZIP file.'}, status=status.HTTP_400_BAD_REQUEST)
+    if not upload.name.lower().endswith('.zip'):
+        return Response({'error': 'Please upload the .zip export from Letterboxd.'}, status=status.HTTP_400_BAD_REQUEST)
+    if upload.size > 20 * 1024 * 1024:
+        return Response({'error': 'ZIP must be 20MB or smaller.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        stats = import_letterboxd_zip(request.user, upload)
+    except zipfile.BadZipFile:
+        return Response({'error': 'That file is not a valid ZIP archive.'}, status=status.HTTP_400_BAD_REQUEST)
+    except ValueError as exc:
+        return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception:
+        return Response(
+            {'error': 'Import failed while reading the export. Please try again.'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    return Response({
+        'success': True,
+        'imported': stats,
+        'message': (
+            f"Imported {stats['logs_created']} new diary entries, "
+            f"updated {stats['logs_updated']}, and added {stats['watchlist_added']} watchlist titles."
+        ),
+    }, status=status.HTTP_200_OK)
