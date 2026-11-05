@@ -1040,7 +1040,7 @@ export default function ProfilePage() {
       {profile.recent.length === 0 ? (
         <p className="profile-empty">No diary entries yet.</p>
       ) : (
-        <div className="profile-activity-grid">
+        <div className="diary-date-entries profile-activity-list">
           {profile.recent.map((log) => {
             const item = details[log.tmdb_id]
             const title = item?.title || item?.name || ''

@@ -585,7 +585,11 @@ def public_profile(request, username):
     avg = logs.aggregate(avg=DAvg('rating'))['avg']
     this_year = logs.filter(watched_date__year=timezone.now().year).count()
     reviews_count = logs.exclude(Q(review='') | Q(review__isnull=True)).count()
-    recent = logs.select_related('user').prefetch_related('likes', 'replies')[:60]
+    recent = (
+        logs.order_by('-watched_date', '-created_at')
+        .select_related('user')
+        .prefetch_related('likes', 'replies')[:20]
+    )
 
     profile_extras = {
         field: getattr(profile, field, None)

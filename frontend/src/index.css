@@ -5678,3 +5678,20 @@ button, a, [role="button"] { touch-action: manipulation; }
 .bottom-nav--4 .bottom-nav-label {
   font-size: 0.58rem;
 }
+
+/* Profile activity: diary rows, one per line */
+.profile-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.profile-activity-list .diary-entry {
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  padding: 10px;
+}
+.profile-activity-list .diary-entry:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-surface);
+}

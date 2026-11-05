@@ -140,6 +140,10 @@ function ProfileMenu({ variant = 'desktop' }) {
             <Icon name="bookmark" size={15} />
             Watchlist
           </Link>
+          <Link to="/diary" className="fn-menu-item" role="menuitem" onClick={() => setOpen(false)}>
+            <Icon name="journal" size={15} />
+            Diary
+          </Link>
           <div className="fn-menu-divider" />
           <Link to="/settings" className="fn-menu-item" role="menuitem" onClick={() => setOpen(false)}>
             <Icon name="info" size={15} />
