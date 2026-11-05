@@ -5,7 +5,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 
-from .models import CircleMessage, DirectMessage, FriendRequest, MovieCircle
+from .models import CircleMessage, Clip, DirectMessage, FriendRequest, MovieCircle
 
 
 def parse_dm_room(room_name):
@@ -71,12 +71,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 tmdb_id = None
 
         media_type = data.get('media_type') or 'movie'
+        reply_to_id = data.get('reply_to_id')
+        clip_id = data.get('clip_id')
+        try:
+            reply_to_id = int(reply_to_id) if reply_to_id else None
+            clip_id = int(clip_id) if clip_id else None
+        except (TypeError, ValueError):
+            reply_to_id = None
+            clip_id = None
         user = self.scope.get('user')
 
         if user is None or not user.is_authenticated:
             return
 
-        saved = await self.save_message(user, message, tmdb_id, media_type)
+        saved = await self.save_message(user, message, tmdb_id, media_type, reply_to_id, clip_id)
         if saved is None:
             return
 
@@ -91,6 +99,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'message': message,
                 'tmdb_id': tmdb_id,
                 'media_type': media_type,
+                'reply_to': saved.get('reply_to'),
+                'clip': saved.get('clip'),
                 'created_at': saved['created_at'],
             },
         )
@@ -104,11 +114,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'message': event['message'],
             'tmdb_id': event['tmdb_id'],
             'media_type': event['media_type'],
+            'reply_to': event.get('reply_to'),
+            'clip': event.get('clip'),
             'created_at': event['created_at'],
         }))
 
     @database_sync_to_async
-    def save_message(self, user, message, tmdb_id, media_type):
+    def save_message(self, user, message, tmdb_id, media_type, reply_to_id=None, clip_id=None):
         if self.is_dm:
             if not self.dm_user_ids or user.id not in self.dm_user_ids:
                 return None
@@ -127,18 +139,46 @@ class ChatConsumer(AsyncWebsocketConsumer):
             if not friends:
                 return None
 
+            reply_to = None
+            if reply_to_id:
+                reply_to = (
+                    DirectMessage.objects
+                    .filter(id=reply_to_id)
+                    .filter(
+                        Q(sender=user, recipient=recipient)
+                        | Q(sender=recipient, recipient=user)
+                    )
+                    .first()
+                )
+            clip = Clip.objects.filter(id=clip_id).first() if clip_id else None
+
             dm = DirectMessage.objects.create(
                 sender=user,
                 recipient=recipient,
                 message=message,
                 tmdb_id=tmdb_id,
                 media_type=media_type,
+                reply_to=reply_to,
+                clip=clip,
             )
             profile = getattr(user, 'profile', None)
             return {
                 'created_at': dm.created_at.isoformat(),
                 'is_founding_member': bool(profile and profile.is_founding_member),
                 'is_vip': bool(profile and profile.is_vip),
+                'reply_to': {
+                    'id': reply_to.id,
+                    'username': reply_to.sender.username,
+                    'message': reply_to.message,
+                } if reply_to else None,
+                'clip': {
+                    'id': clip.id,
+                    'media_title': clip.media_title,
+                    'caption': clip.caption,
+                    'tmdb_id': clip.tmdb_id,
+                    'media_type': clip.media_type,
+                    'video_url': clip.video.url if clip.video else '',
+                } if clip else None,
             }
 
         circle = MovieCircle.objects.filter(slug=self.room_name).first()

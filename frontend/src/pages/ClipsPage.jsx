@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 import Icon from '../components/Icon'
+import ShareClipModal from '../components/ShareClipModal'
 import FoundingBadge from '../components/FoundingBadge'
 import VipBadge from '../components/VipBadge'
 import ErrorState from '../components/ErrorState'
@@ -64,6 +65,7 @@ export default function ClipsPage() {
   const [bursts, setBursts] = useState([])
 
   const [commentsClip, setCommentsClip] = useState(null)
+  const [shareTarget, setShareTarget] = useState(null)
   const [showAuth, setShowAuth] = useState(false)
   const [reportClip, setReportClip] = useState(null)
   const [toast, setToast] = useState('')
@@ -359,20 +361,6 @@ export default function ClipsPage() {
     if (!v.duration) return
     const fill = fillRefs.current[clip.id]
     if (fill) fill.style.width = `${(v.currentTime / v.duration) * 100}%`
-  }
-
-  const shareClip = async (clip) => {
-    const url = `${window.location.origin}/clips/${clip.id}`
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: 'Madflix clip', url })
-        return
-      }
-      await navigator.clipboard.writeText(url)
-      showToast('Link copied')
-    } catch (err) {
-      if (err?.name !== 'AbortError') showToast('Could not share this clip')
-    }
   }
 
   const handleReport = (clip) => {
@@ -758,7 +746,7 @@ export default function ClipsPage() {
 
                   <button
                     className="clip-action"
-                    onClick={() => shareClip(clip)}
+                    onClick={() => setShareTarget(clip)}
                     aria-label="Share clip"
                   >
                     <span className="clip-action-btn">
@@ -817,6 +805,10 @@ export default function ClipsPage() {
       )}
 
       {toast && <div className="clip-toast" role="status">{toast}</div>}
+
+      {shareTarget && (
+        <ShareClipModal clip={shareTarget} onClose={() => setShareTarget(null)} />
+      )}
 
       {commentsClip && (
         <ClipCommentsSheet

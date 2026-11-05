@@ -17,6 +17,7 @@ from django.core.files.storage import default_storage
 from .models import (
     CircleMembership,
     CircleMessage,
+    Clip,
     ClipComment,
     ClipLike,
     DiaryLike,
@@ -1775,6 +1776,49 @@ def ensure_default_communities():
         })
 
 
+def _dm_clip_payload(clip):
+    if clip is None:
+        return None
+    try:
+        video_url = clip.video.url
+    except ValueError:
+        video_url = ''
+    return {
+        'id': clip.id,
+        'media_title': clip.media_title,
+        'caption': clip.caption,
+        'tmdb_id': clip.tmdb_id,
+        'media_type': clip.media_type,
+        'video_url': video_url,
+    }
+
+
+def _dm_reply_payload(message):
+    if not message.reply_to_id:
+        return None
+    reply = message.reply_to
+    return {
+        'id': reply.id,
+        'username': reply.sender.username,
+        'message': reply.message,
+    }
+
+
+def _dm_message_payload(message):
+    return {
+        'id': message.id,
+        'sender_id': message.sender_id,
+        'sender_username': message.sender.username,
+        'message': message.message,
+        'tmdb_id': message.tmdb_id,
+        'media_type': message.media_type,
+        'is_read': message.is_read,
+        'created_at': message.created_at.isoformat(),
+        'reply_to': _dm_reply_payload(message),
+        'clip': _dm_clip_payload(message.clip),
+    }
+
+
 def _sender_card(user):
     profile = getattr(user, 'profile', None)
     return {
@@ -1914,7 +1958,7 @@ def dm_history(request, target_user_id):
             Q(sender=request.user, recipient=partner)
             | Q(sender=partner, recipient=request.user)
         )
-        .select_related('sender', 'sender__profile')
+        .select_related('sender', 'sender__profile', 'reply_to__sender', 'clip')
         .order_by('created_at')
     )
 
@@ -1923,19 +1967,11 @@ def dm_history(request, target_user_id):
     ).update(is_read=True)
 
     return Response([
-        {
-            'id': message.id,
-            'sender_id': message.sender_id,
-            'sender_username': message.sender.username,
-            'sender_avatar': _sender_card(message.sender)['avatar_url'],
-            'message': message.message,
-            'tmdb_id': message.tmdb_id,
-            'media_type': message.media_type,
-            'is_read': True if message.sender_id == partner.id else message.is_read,
-            'created_at': message.created_at.isoformat(),
-        }
+        _dm_message_payload(message)
         for message in queryset
     ], status=status.HTTP_200_OK)
+
+
 
 
 @api_view(['POST'])
@@ -2520,3 +2556,81 @@ def letterboxd_import(request):
             f"updated {stats['logs_updated']}, and added {stats['watchlist_added']} watchlist titles."
         ),
     }, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def share_clip_message(request):
+    """Share an existing clip into an accepted DM conversation."""
+    from asgiref.sync import async_to_sync
+    from channels.layers import get_channel_layer
+
+    try:
+        clip_id = int(request.data.get('clip_id'))
+        recipient_id = int(request.data.get('recipient_id'))
+    except (TypeError, ValueError):
+        return Response({'error': 'clip_id and recipient_id are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    clip = Clip.objects.filter(id=clip_id).first()
+    if clip is None:
+        return Response({'error': 'Clip not found.'}, status=status.HTTP_404_NOT_FOUND)
+    if recipient_id == request.user.id:
+        return Response({'error': 'Cannot send a clip to yourself.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    recipient = User.objects.filter(id=recipient_id).first()
+    if recipient is None:
+        return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    friends = FriendRequest.objects.filter(
+        Q(sender=request.user, recipient=recipient) | Q(sender=recipient, recipient=request.user),
+        status='accepted',
+    ).exists()
+    if not friends:
+        return Response({'error': 'You can only message accepted friends.'}, status=status.HTTP_403_FORBIDDEN)
+
+    message = (request.data.get('message') or '').strip()
+    if not message:
+        message = f'Shared a clip: {clip.media_title or clip.caption or "Madflix clip"}'[:500]
+
+    dm = DirectMessage.objects.create(
+        sender=request.user,
+        recipient=recipient,
+        message=message,
+        clip=clip,
+    )
+
+    try:
+        channel_layer = get_channel_layer()
+        min_id, max_id = sorted((request.user.id, recipient.id))
+        profile = getattr(request.user, 'profile', None)
+        async_to_sync(channel_layer.group_send)(
+            f'chat_dm_{min_id}_{max_id}',
+            {
+                'type': 'chat_message',
+                'sender_id': request.user.id,
+                'sender_username': request.user.username,
+                'sender_is_founding_member': bool(profile and profile.is_founding_member),
+                'sender_is_vip': bool(profile and profile.is_vip),
+                'message': dm.message,
+                'tmdb_id': None,
+                'media_type': 'movie',
+                'reply_to': None,
+                'clip': {
+                    'id': clip.id,
+                    'media_title': clip.media_title,
+                    'caption': clip.caption,
+                    'tmdb_id': clip.tmdb_id,
+                    'media_type': clip.media_type,
+                    'video_url': clip.video.url if clip.video else '',
+                },
+                'created_at': dm.created_at.isoformat(),
+            },
+        )
+    except Exception:
+        pass
+
+    return Response({
+        'success': True,
+        'message': _dm_message_payload(dm),
+        'recipient': _sender_card(recipient),
+    }, status=status.HTTP_201_CREATED)

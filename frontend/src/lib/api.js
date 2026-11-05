@@ -258,6 +258,8 @@ export const api = {
     return fetchMultipart('/import/letterboxd/', formData)
   },
   dmConversation: (userId) => fetchJson(`/dm/${userId}/`),
+  shareClip: (clipId, recipientId, message) =>
+    fetchPost('/messages/share-clip/', { clip_id: clipId, recipient_id: recipientId, message }),
 
   // Clips
   clips: (params = {}) => fetchJson('/clips/', params),

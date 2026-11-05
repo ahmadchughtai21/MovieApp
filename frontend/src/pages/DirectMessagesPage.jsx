@@ -63,6 +63,8 @@ export default function DirectMessagesPage() {
   const [messages, setMessages] = useState([])
   const [status, setStatus] = useState('idle')
   const [draft, setDraft] = useState('')
+  const [replyTarget, setReplyTarget] = useState(null)
+  const touchStartRef = useRef(null)
   const socketRef = useRef(null)
   const bottomRef = useRef(null)
 
@@ -190,8 +192,10 @@ export default function DirectMessagesPage() {
       message: text,
       tmdb_id: tag.tmdb_id,
       media_type: tag.media_type,
+      reply_to_id: replyTarget?.id || null,
     }))
     setDraft('')
+    setReplyTarget(null)
   }
 
   if (!user) {
@@ -382,52 +386,74 @@ export default function DirectMessagesPage() {
             return (
               <div
                 key={`${message.sender_id}-${message.created_at}-${index}`}
-                style={{
-                  alignSelf: mine ? 'flex-end' : 'flex-start',
-                  maxWidth: '82%',
-                  padding: '8px 12px',
-                  borderRadius: 12,
-                  background: mine ? 'var(--accent-soft)' : 'var(--bg-surface)',
-                  border: '1px solid var(--border-subtle)',
+                className={`dm-bubble${mine ? ' dm-bubble--mine' : ''}`}
+                onTouchStart={(event) => { touchStartRef.current = event.touches[0].clientX }}
+                onTouchMove={(event) => {
+                  if (touchStartRef.current == null) return
+                  if (event.touches[0].clientX - touchStartRef.current > 55) {
+                    setReplyTarget(message)
+                    touchStartRef.current = null
+                  }
                 }}
+                onTouchEnd={() => { touchStartRef.current = null }}
               >
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 2 }}>
-                  <span style={{ fontWeight: 700, fontSize: '0.8rem' }}>
-                    {mine ? 'You' : message.sender_username}
-                  </span>
-                  <span style={{ color: 'var(--text-dim)', fontSize: '0.68rem' }}>{formatTime(message.created_at)}</span>
-                </div>
-                <div style={{ fontSize: '0.9rem', lineHeight: 1.35 }}>{message.message}</div>
-                {message.tmdb_id && (
-                  <Link
-                    to={mediaLink(message.tmdb_id, message.media_type)}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      marginTop: 6,
-                      padding: '3px 8px',
-                      borderRadius: 999,
-                      background: 'var(--accent-soft)',
-                      color: 'var(--accent)',
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                    }}
+                <div className="dm-bubble__head">
+                  <span>{mine ? 'You' : message.sender_username}</span>
+                  <span className="dm-bubble__time">{formatTime(message.created_at)}</span>
+                  <button
+                    type="button"
+                    className="dm-bubble__reply"
+                    onClick={() => setReplyTarget(message)}
+                    aria-label="Reply"
                   >
+                    ↩
+                  </button>
+                </div>
+
+                {message.reply_to && (
+                  <div className="dm-reply-quote">
+                    <strong>@{message.reply_to.username}</strong>
+                    <span>{message.reply_to.message || 'Clip'}</span>
+                  </div>
+                )}
+
+                {message.message && <div className="dm-bubble__text">{message.message}</div>}
+
+                {message.clip && (
+                  <Link to={`/clips/${message.clip.id}`} className="dm-clip-card">
+                    <span className="dm-clip-card__icon"><Icon name="clapper" size={18} /></span>
+                    <span>
+                      <strong>{message.clip.media_title || 'Shared clip'}</strong>
+                      <em>{message.clip.caption || 'Tap to watch'}</em>
+                    </span>
+                  </Link>
+                )}
+
+                {message.tmdb_id && (
+                  <Link to={mediaLink(message.tmdb_id, message.media_type)} className="dm-bubble__tag">
                     <Icon name={message.media_type === 'tv' ? 'tv' : 'film'} size={12} />
                     {message.media_type === 'tv' ? 'TV' : 'Movie'} #{message.tmdb_id}
                   </Link>
                 )}
+
                 {mine && (
-                  <div style={{ marginTop: 3, textAlign: 'right', fontSize: '0.64rem', color: 'var(--text-dim)' }}>
-                    {message.is_read ? 'Read' : 'Sent'}
-                  </div>
+                  <div className="dm-bubble__status">{message.is_read ? 'Read' : 'Sent'}</div>
                 )}
               </div>
             )
           })}
           <div ref={bottomRef} />
         </div>
+
+        {replyTarget && (
+          <div className="dm-reply-banner">
+            <span>
+              Replying to <strong>@{replyTarget.sender_username}</strong>
+              <em>{replyTarget.message || 'Clip'}</em>
+            </span>
+            <button type="button" onClick={() => setReplyTarget(null)} aria-label="Cancel reply">×</button>
+          </div>
+        )}
 
         <form
           onSubmit={sendMessage}

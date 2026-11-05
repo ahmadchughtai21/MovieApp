@@ -168,6 +168,7 @@ urlpatterns = [
     path('communities/<slug:slug>/delete/', api_views.community_delete, name='community-delete'),
     path('messages/groups/', api_views.my_groups, name='my-groups'),
     path('messages/inbox/', api_views.dm_inbox, name='dm-inbox'),
+    path('messages/share-clip/', api_views.share_clip_message, name='dm-share-clip'),
     path('messages/history/<int:target_user_id>/', api_views.dm_history, name='dm-history'),
     path('vip/checkout/', api_views.vip_checkout, name='vip-checkout'),
     path('notifications/', api_views.notifications_feed, name='notifications-feed'),

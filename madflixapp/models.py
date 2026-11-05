@@ -352,7 +352,21 @@ class TasteMatch(models.Model):
 class DirectMessage(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_dms')
     recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_dms')
-    message = models.TextField()
+    message = models.TextField(blank=True, default='')
+    clip = models.ForeignKey(
+        'Clip',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='dm_shares',
+    )
+    reply_to = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='replies',
+    )
     tmdb_id = models.IntegerField(null=True, blank=True)
     media_type = models.CharField(max_length=10, default='movie')
     is_read = models.BooleanField(default=False)

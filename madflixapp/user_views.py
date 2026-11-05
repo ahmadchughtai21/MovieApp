@@ -986,27 +986,20 @@ def dm_conversation(request, user_id):
     except DjangoUser.DoesNotExist:
         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    messages = DirectMessage.objects.filter(
-        Q(sender=request.user, recipient=other) | Q(sender=other, recipient=request.user)
-    ).order_by('created_at')
+    from .api_views import _dm_message_payload
+
+    messages = (
+        DirectMessage.objects
+        .filter(Q(sender=request.user, recipient=other) | Q(sender=other, recipient=request.user))
+        .select_related('sender', 'reply_to__sender', 'clip')
+        .order_by('created_at')
+    )
 
     DirectMessage.objects.filter(
         sender=other, recipient=request.user, is_read=False
     ).update(is_read=True)
 
-    return Response([
-        {
-            'id': message.id,
-            'sender_id': message.sender_id,
-            'sender_username': message.sender.username,
-            'message': message.message,
-            'tmdb_id': message.tmdb_id,
-            'media_type': message.media_type,
-            'is_read': message.is_read,
-            'created_at': message.created_at.isoformat(),
-        }
-        for message in messages.select_related('sender')
-    ])
+    return Response([_dm_message_payload(message) for message in messages])
 
 
 @api_view(['GET'])
