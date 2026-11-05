@@ -675,38 +675,57 @@ export default function ProfilePage() {
       <section className="profile-block profile-block--films">
         <h2 className="profile-section-title">Top 4 favorite films</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 10 }}>
-          {favFilms.map((film, index) => (
-            <button
-              key={index}
-              type="button"
-              className="profile-film-card"
-              onClick={() => { if (profile.is_me) setPicker({ type: 'film', index }) }}
-              disabled={!profile.is_me}
-              style={{
-                position: 'relative',
-                aspectRatio: '2 / 3',
-                borderRadius: 10,
-                overflow: 'hidden',
-                border: '1px solid var(--border)',
-                background: 'var(--bg-surface)',
-                display: 'grid',
-                placeItems: 'center',
-                color: 'var(--text-muted)',
-              }}
-            >
-              {film?.poster_path ? (
-                <img
-                  src={`https://image.tmdb.org/t/p/w342${film.poster_path}`}
-                  alt={film.title}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              ) : (
-                <span style={{ fontSize: '0.75rem', padding: 6, textAlign: 'center' }}>
-                  {film ? 'Loading…' : profile.is_me ? '+ Add film' : 'No film'}
-                </span>
-              )}
-            </button>
-          ))}
+          {favFilms.map((film, index) => {
+            const cardStyle = {
+              position: 'relative',
+              aspectRatio: '2 / 3',
+              borderRadius: 10,
+              overflow: 'hidden',
+              border: '1px solid var(--border)',
+              background: 'var(--bg-surface)',
+              display: 'grid',
+              placeItems: 'center',
+              color: 'var(--text-muted)',
+            }
+            const content = film?.poster_path ? (
+              <img
+                src={`https://image.tmdb.org/t/p/w342${film.poster_path}`}
+                alt={film.title}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              <span style={{ fontSize: '0.75rem', padding: 6, textAlign: 'center' }}>
+                {film ? 'Loading…' : profile.is_me ? '+ Add film' : 'No film'}
+              </span>
+            )
+
+            if (film?.id) {
+              return (
+                <Link
+                  key={index}
+                  to={`/movie/${film.id}`}
+                  className="profile-film-card"
+                  style={cardStyle}
+                  title={film.title}
+                >
+                  {content}
+                </Link>
+              )
+            }
+
+            return (
+              <button
+                key={index}
+                type="button"
+                className="profile-film-card"
+                onClick={() => { if (profile.is_me) setPicker({ type: 'film', index }) }}
+                disabled={!profile.is_me}
+                style={cardStyle}
+              >
+                {content}
+              </button>
+            )
+          })}
         </div>
       </section>
 
