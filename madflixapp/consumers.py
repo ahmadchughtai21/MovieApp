@@ -119,6 +119,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'created_at': event['created_at'],
         }))
 
+    def _clip_payload(self, clip):
+        from .clip_utils import clip_thumbnail_url
+
+        return {
+            'id': clip.id,
+            'media_title': clip.media_title,
+            'caption': clip.caption,
+            'tmdb_id': clip.tmdb_id,
+            'media_type': clip.media_type,
+            'video_url': clip.video.url if clip.video else '',
+            'thumbnail_url': clip_thumbnail_url(clip),
+        }
+
     @database_sync_to_async
     def save_message(self, user, message, tmdb_id, media_type, reply_to_id=None, clip_id=None):
         if self.is_dm:
@@ -171,14 +184,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     'username': reply_to.sender.username,
                     'message': reply_to.message,
                 } if reply_to else None,
-                'clip': {
-                    'id': clip.id,
-                    'media_title': clip.media_title,
-                    'caption': clip.caption,
-                    'tmdb_id': clip.tmdb_id,
-                    'media_type': clip.media_type,
-                    'video_url': clip.video.url if clip.video else '',
-                } if clip else None,
+                'clip': self._clip_payload(clip) if clip else None,
             }
 
         circle = MovieCircle.objects.filter(slug=self.room_name).first()

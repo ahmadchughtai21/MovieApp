@@ -421,8 +421,12 @@ export default function DirectMessagesPage() {
 
                 {message.clip && (
                   <Link to={`/clips/${message.clip.id}`} className="dm-clip-card">
-                    <span className="dm-clip-card__icon"><Icon name="clapper" size={18} /></span>
-                    <span>
+                    {message.clip.thumbnail_url ? (
+                      <img className="dm-clip-card__thumb" src={message.clip.thumbnail_url} alt="" />
+                    ) : (
+                      <span className="dm-clip-card__icon"><Icon name="clapper" size={18} /></span>
+                    )}
+                    <span className="dm-clip-card__copy">
                       <strong>{message.clip.media_title || 'Shared clip'}</strong>
                       <em>{message.clip.caption || 'Tap to watch'}</em>
                     </span>

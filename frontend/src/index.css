@@ -5980,3 +5980,13 @@ button, a, [role="button"] { touch-action: manipulation; }
   color: var(--text-muted);
   font-size: 1rem;
 }
+
+.dm-clip-card__thumb {
+  flex: none;
+  width: 48px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 7px;
+  background: var(--bg-surface-strong);
+}
+.dm-clip-card__copy { min-width: 0; }

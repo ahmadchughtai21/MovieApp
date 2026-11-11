@@ -1779,6 +1779,8 @@ def ensure_default_communities():
 def _dm_clip_payload(clip):
     if clip is None:
         return None
+    from .clip_utils import clip_thumbnail_url
+
     try:
         video_url = clip.video.url
     except ValueError:
@@ -1790,6 +1792,7 @@ def _dm_clip_payload(clip):
         'tmdb_id': clip.tmdb_id,
         'media_type': clip.media_type,
         'video_url': video_url,
+        'thumbnail_url': clip_thumbnail_url(clip),
     }
 
 
@@ -2615,14 +2618,7 @@ def share_clip_message(request):
                 'tmdb_id': None,
                 'media_type': 'movie',
                 'reply_to': None,
-                'clip': {
-                    'id': clip.id,
-                    'media_title': clip.media_title,
-                    'caption': clip.caption,
-                    'tmdb_id': clip.tmdb_id,
-                    'media_type': clip.media_type,
-                    'video_url': clip.video.url if clip.video else '',
-                },
+                'clip': _dm_clip_payload(clip),
                 'created_at': dm.created_at.isoformat(),
             },
         )
